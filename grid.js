@@ -1,3 +1,6 @@
+import Sortable from "./node_modules/sortablejs/modular/sortable.complete.esm.js";
+import autoAnimate from "./node_modules/@formkit/auto-animate/index.mjs";
+
 // grid.js
 
 // --- CONFIG & STATE ---
@@ -34,6 +37,7 @@ let undoStack = [];
 let undoTimeout = null;
 let focusedCardIndex = -1;
 let activeModalGroupId = null; // NEW: Tracks which group is open in the modal
+let sortableGrid = null;
 
 // --- FIX: CHROME AUTO-CLOSE EDGE CASE ---
 // Chrome aggressively closes unmodified New Tab pages when you switch away.
@@ -216,623 +220,224 @@ undoBtn.addEventListener('click', async () => {
     }, 150);
 });
 
-// --- DRAG LOGIC (Preserved) ---
-function makeDraggable(card, id, isGroup = false) {
-    card.addEventListener('mousedown', (e) => {
-        if (e.target.closest('.close-btn') || e.button !== 0) return;
+// --- SORTABLE REORDER SYSTEM ---
 
-        const rect = card.getBoundingClientRect();
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const offsetX = e.clientX - rect.left;
-        const offsetY = e.clientY - rect.top;
 
-        let isDragStarted = false;
-        let clone = null;
-        let batchClones = [];
-        let currentTarget = null;
-        let currentDropZone = null; // NEW: Tracks 'left', 'right', or 'center'
-        let visualOrderSnapshot = [];
+function getCardTabId(card) {
+    const id = parseInt(card.dataset.tid, 10);
+    return Number.isFinite(id) ? id : null;
+}
 
-        // --- NEW: MODIFIER TRACKING ---
-        let lastX = e.clientX;
-        let lastY = e.clientY;
-        let isGroupModifier = false; // Tracks if Alt/Option is held
+function isSortableTabCard(card) {
+    return card &&
+        card.classList.contains('card') &&
+        !card.classList.contains('group-card') &&
+        !card.classList.contains('add-card') &&
+        getCardTabId(card) !== null;
+}
 
-        // --- NEW: KEY LISTENERS FOR INSTANT UI UPDATES ---
-        function onKeyDown(e) {
-            if (e.key === 'Alt') {
-                isGroupModifier = true;
-                if (isDragStarted) updateDragVisuals(lastX, lastY);
-            }
+function isReorderEnabled() {
+    const sortMode = document.getElementById('sort-select').value;
+    return !searchState.query && !searchState.showAllWindows && sortMode === 'default';
+}
+
+function getOrderedTabIdsFromGrid() {
+    return Array.from(grid.children)
+        .filter(isSortableTabCard)
+        .map(getCardTabId);
+}
+
+function canDragSelectedBlock(activeTabId) {
+    if (!selectedTabIds.has(activeTabId)) return false;
+
+    return Array.from(selectedTabIds).every(tabId => {
+        const card = document.querySelector(`.card[data-tid="${tabId}"]`);
+        return isSortableTabCard(card);
+    });
+}
+
+function markDraggedCards(evt) {
+    const cards = [evt.item, ...(evt.items || [])].filter(Boolean);
+    cards.forEach(card => { card.dataset.wasDragged = "true"; });
+}
+
+function clearDraggedMarks(evt) {
+    const cards = [evt.item, ...(evt.items || [])].filter(Boolean);
+    setTimeout(() => {
+        cards.forEach(card => { delete card.dataset.wasDragged; });
+    }, 80);
+}
+
+function syncSortableSelection() {
+    if (!sortableGrid || !Sortable.utils) return;
+
+    Array.from(grid.children).forEach(card => {
+        if (!isSortableTabCard(card)) return;
+
+        const tabId = getCardTabId(card);
+        if (selectedTabIds.has(tabId)) {
+            Sortable.utils.select(card);
+        } else {
+            Sortable.utils.deselect(card);
         }
-        function onKeyUp(e) {
-            if (e.key === 'Alt') {
-                isGroupModifier = false;
-                if (isDragStarted) updateDragVisuals(lastX, lastY);
-            }
-        }
+    });
+}
 
-        document.addEventListener('keydown', onKeyDown);
-        document.addEventListener('keyup', onKeyUp);
+async function getRootOrderBlocksFromDom(windowTabs) {
+    const currentGridUrl = chrome.runtime.getURL("grid.html");
+    const tabsById = new Map(windowTabs.map(tab => [tab.id, tab]));
+    const groupTabsById = new Map();
 
-        // --- NEW: THE FLIP ANIMATION ENGINE ---
-        function moveGhostsAndAnimate(domMoveLogic) {
-            // Get all visible cards (excluding the ones floating on the cursor)
-            const allCards = Array.from(document.querySelectorAll('.card:not(.dragging-card):not(.batch-clone)'));
+    windowTabs
+        .filter(tab =>
+            tab.url &&
+            !tab.url.startsWith(currentGridUrl) &&
+            tab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE
+        )
+        .sort((a, b) => a.index - b.index)
+        .forEach(tab => {
+            if (!groupTabsById.has(tab.groupId)) groupTabsById.set(tab.groupId, []);
+            groupTabsById.get(tab.groupId).push(tab.id);
+        });
 
-            // 1. FIRST: Cancel any existing animations and reset transforms
-            allCards.forEach(c => {
-                c.classList.remove('flip-transition');
-                c.style.transform = '';
-            });
+    return Array.from(grid.children).flatMap(card => {
+        if (!card.classList.contains('card') || card.classList.contains('add-card')) return [];
 
-            // 2. Record starting coordinates AFTER resetting
-            const firstRects = new Map();
-            allCards.forEach(c => firstRects.set(c, c.getBoundingClientRect()));
+        const id = getCardTabId(card);
+        if (id === null) return [];
 
-            // 3. DOM MOVE: Execute the physical layout change
-            domMoveLogic();
-
-            visualOrderSnapshot = Array.from(
-                document.querySelectorAll('.card')
-            ).map(c => ({
-                id: parseInt(c.dataset.tid),
-                isGroup: c.classList.contains('group-card')
-            }));
-
-            // 4. INVERT & PLAY: Animate them to the new coordinates
-            allCards.forEach(c => {
-                const first = firstRects.get(c);
-                const last = c.getBoundingClientRect();
-                const dx = first.left - last.left;
-                const dy = first.top - last.top;
-
-                if (dx !== 0 || dy !== 0) {
-                    c.classList.add('no-transition');
-                    c.style.transform = `translate(${dx}px, ${dy}px)`;
-
-                    void c.offsetWidth; // Force Browser Reflow
-
-                    c.classList.remove('no-transition');
-                    c.classList.add('flip-transition');
-                    c.style.transform = '';
-
-                    setTimeout(() => c.classList.remove('flip-transition'), 250);
-                }
-            });
-        }
-
-        // Helper to snap the grid back to normal when dropping into a folder
-        function resetGridReflow() {
-            moveGhostsAndAnimate(() => {
-                document.querySelectorAll('.ghost-card').forEach(ghost => {
-                    const anchor = document.getElementById('anchor-' + ghost.dataset.ghostId);
-                    if (anchor) anchor.parentNode.insertBefore(ghost, anchor);
-                });
-            });
+        if (card.classList.contains('group-card')) {
+            return groupTabsById.get(id) || [];
         }
 
-        let scrollSpeed = 0;
-        let scrollFrameId = null;
+        const tab = tabsById.get(id);
+        return tab ? [id] : [];
+    });
+}
 
-        const addCard = document.querySelector('.add-card');
-        const originalAddCardHTML = addCard ? addCard.innerHTML : '';
+async function moveTabsInOrder(orderedIds, startIndex = 0) {
+    const seen = new Set();
+    const uniqueIds = orderedIds.filter(id => {
+        if (seen.has(id)) return false;
+        seen.add(id);
+        return true;
+    });
 
-        function startAutoScroll() {
-            function loop() {
-                if (scrollSpeed !== 0) {
-                    window.scrollBy(0, scrollSpeed);
-                    // FIX: Use the latest tracked position from onMouseMove
-                    if (isDragStarted) updateDragVisuals(lastX, lastY);
-                }
-                scrollFrameId = requestAnimationFrame(loop);
-            }
-            scrollFrameId = requestAnimationFrame(loop);
+    let index = startIndex;
+    let offset = 0;
+
+    while (offset < uniqueIds.length) {
+        const firstId = uniqueIds[offset];
+        const firstTab = await chrome.tabs.get(firstId).catch(() => null);
+        if (!firstTab) {
+            offset++;
+            continue;
         }
 
-        function stopAutoScroll() { if (scrollFrameId) cancelAnimationFrame(scrollFrameId); }
+        let blockIds = [firstId];
+        offset++;
 
-        function clearTarget() {
-            if (currentTarget) {
-                if (currentTarget.classList.contains('add-card')) currentTarget.classList.remove('drag-over-target');
-                else {
-                    const existingOverlay = currentTarget.querySelector('.drop-target-overlay');
-                    if (existingOverlay) existingOverlay.remove();
-                }
-                delete currentTarget.dataset.dropZone;
-                currentTarget = null;
-                currentDropZone = null;
+        if (firstTab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+            while (offset < uniqueIds.length) {
+                const nextId = uniqueIds[offset];
+                const nextTab = await chrome.tabs.get(nextId).catch(() => null);
+                if (!nextTab || nextTab.groupId !== firstTab.groupId) break;
+                blockIds.push(nextId);
+                offset++;
             }
         }
 
-        function updateDragVisuals(x, y) {
-            if (!clone) return;
-            clone.style.left = (x - offsetX) + 'px';
-            clone.style.top = (y - offsetY) + 'px';
+        if (blockIds.length === 0) continue;
 
-            let elemBelow = document.elementFromPoint(x, y);
+        await chrome.tabs.move(blockIds, { index });
+        index += blockIds.length;
+    }
+}
 
-            // --- FLICKER FIX: If we are hovering the physical empty space we just created, lock state! ---
-            if (elemBelow && elemBelow.closest('.ghost-card')) return;
+async function reorderChromeTabs(orderedIds) {
+    const currentWin = await chrome.windows.getCurrent();
+    const tabs = await chrome.tabs.query({ windowId: currentWin.id });
+    const idToTab = new Map(tabs.map(tab => [tab.id, tab]));
 
-            let targetCard = elemBelow ? elemBelow.closest('.card:not(.ghost-card)') : null;
-            if (
-                currentState.mode === 'group' &&
-                targetCard &&
-                targetCard.classList.contains('group-card')
-            ) {
-                targetCard = null;
+    if (currentState.mode === 'group') {
+        const groupTabs = tabs
+            .filter(tab => tab.groupId === currentState.groupId)
+            .sort((a, b) => a.index - b.index);
+        if (groupTabs.length === 0) return;
+
+        const groupTabIds = new Set(groupTabs.map(tab => tab.id));
+        const orderedGroupIds = orderedIds.filter(id => groupTabIds.has(id));
+        await moveTabsInOrder(orderedGroupIds, groupTabs[0].index);
+        return;
+    }
+
+    const domOrderedIds = await getRootOrderBlocksFromDom(tabs);
+    const fallbackIds = orderedIds.filter(id => idToTab.has(id));
+    const idsToMove = domOrderedIds.length ? domOrderedIds : fallbackIds;
+    await moveTabsInOrder(idsToMove, 0);
+}
+
+function initSortableGrid() {
+    if (sortableGrid) {
+        sortableGrid.option('disabled', !isReorderEnabled());
+        syncSortableSelection();
+        return;
+    }
+
+    sortableGrid = Sortable.create(grid, {
+        animation: 150,
+        delay: 0,
+        forceFallback: true,
+        handle: ".card",
+        draggable: ".card:not(.group-card):not(.add-card)",
+        ghostClass: "sortable-ghost",
+        chosenClass: "sortable-chosen",
+        dragClass: "sortable-drag",
+        selectedClass: "selected",
+        multiDrag: true,
+        multiDragKey: null,
+        avoidImplicitDeselect: true,
+        filter: ".close-btn, .action-btn, button, input, select, textarea, a",
+        preventOnFilter: false,
+
+        onStart: (evt) => {
+            const tabId = getCardTabId(evt.item);
+            if (tabId !== null && !canDragSelectedBlock(tabId)) {
+                selectedTabIds.clear();
+                selectedTabIds.add(tabId);
+                lastSelectedTabId = tabId;
+                renderSelectionVisuals();
+            } else {
+                syncSortableSelection();
             }
-            let isTargetSelected = targetCard && targetCard.dataset.tid ? selectedTabIds.has(parseInt(targetCard.dataset.tid)) : false;
 
-            // 1. ADD CARD LOGIC
-            if (targetCard && targetCard.classList.contains('add-card') && currentState.mode === 'group') {
-                if (currentTarget !== targetCard) {
-                    clearTarget();
-                    resetGridReflow(); // Snap grid closed
-                    currentTarget = targetCard;
-                    currentTarget.classList.add('drag-over-target');
-                }
+            markDraggedCards(evt);
+        },
+
+        onEnd: async (evt) => {
+            markDraggedCards(evt);
+
+            if (!isReorderEnabled()) {
+                clearDraggedMarks(evt);
+                renderGrid(true);
                 return;
             }
 
-            // 2. REAL-TIME REORDER LOGIC
-            if (targetCard && !isTargetSelected && !targetCard.classList.contains('add-card') && !isGroup && (
-                currentState.mode === 'root' ||
-                currentState.mode === 'group'
-            )) {
-
-                const rect = targetCard.getBoundingClientRect();
-                const ratio = (x - rect.left) / rect.width;
-                let newZone;
-                if (isGroupModifier) {
-                    newZone = 'center';
-                } else if (currentDropZone === 'left') {
-                    newZone = ratio > 0.58 ? 'right' : 'left';
-                } else if (currentDropZone === 'right') {
-                    newZone = ratio < 0.42 ? 'left' : 'right';
-                } else {
-                    newZone = ratio < 0.5 ? 'left' : 'right';
-                }
-
-                if (currentTarget !== targetCard || currentDropZone !== newZone) {
-                    clearTarget();
-                    currentTarget = targetCard;
-                    currentDropZone = newZone;
-                    currentTarget.dataset.dropZone = newZone;
-
-                    if (newZone === 'center') {
-                        resetGridReflow(); // Snap grid closed for grouping
-
-                        let overlay = document.createElement('div');
-                        overlay.className = 'drop-target-overlay';
-                        overlay.innerHTML = targetCard.classList.contains('group-card')
-                            ? `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg><span>Add to Group</span>`
-                            : `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg><span>Create New Group</span>`;
-                        targetCard.appendChild(overlay);
-                    }
-                    else {
-                        // --- PHYSICALLY MOVE THE GRID ---
-                        moveGhostsAndAnimate(() => {
-                            let referenceNode = newZone === 'left' ? targetCard : targetCard.nextSibling;
-                            document.querySelectorAll('.ghost-card').forEach(ghost => {
-                                targetCard.parentNode.insertBefore(ghost, referenceNode);
-                            });
-                        });
-                    }
-                }
-            } else {
-                clearTarget();
-                resetGridReflow(); // Snap grid closed if mouse wanders into empty space
+            try {
+                const orderedIds = getOrderedTabIdsFromGrid();
+                await reorderChromeTabs(orderedIds);
+                await renderGrid(true);
+            } catch (err) {
+                console.warn("Failed to reorder tabs", err);
+                renderGrid(true);
+            } finally {
+                clearDraggedMarks(evt);
             }
         }
-
-        function onMouseMove(e) {
-            lastX = e.clientX;
-            lastY = e.clientY;
-            isGroupModifier = e.altKey;
-
-            const zoneSize = 100; const maxSpeed = 15;
-            if (e.clientY < zoneSize) scrollSpeed = -maxSpeed * ((zoneSize - e.clientY) / zoneSize);
-            else if (e.clientY > window.innerHeight - zoneSize) scrollSpeed = maxSpeed * ((e.clientY - (window.innerHeight - zoneSize)) / zoneSize);
-            else scrollSpeed = 0;
-
-            if (!isDragStarted) {
-                const dx = e.clientX - startX;
-                const dy = e.clientY - startY;
-                if (Math.sqrt(dx * dx + dy * dy) < 5) return;
-
-                isDragStarted = true;
-                if (!selectedTabIds.has(id)) {
-                    selectedTabIds.clear(); selectedTabIds.add(id); lastSelectedTabId = id; renderSelectionVisuals();
-                }
-
-                if (currentState.mode === 'group' && addCard) {
-                    addCard.classList.add('remove-mode');
-                    addCard.innerHTML = `<div class="card-preview"><div class="add-content"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 14l-6-6m0 6l6-6"></path><circle cx="12" cy="12" r="10"></circle></svg><span>Remove from Group</span></div></div><div class="card-info" style="justify-content: center;"><span style="color: inherit;">Drop to Ungroup</span></div>`;
-                }
-
-                card.classList.add('ghost-card');
-                clone = card.cloneNode(true);
-                clone.classList.remove('ghost-card', 'selected');
-                clone.classList.add('dragging-card');
-                if (selectedTabIds.size > 1) {
-                    clone.classList.add('is-batch');
-
-                    if (selectedTabIds.size === 2) clone.classList.add('stack-2');
-                    else clone.classList.add('stack-3'); // Maxes out at 3 visually
-
-                    const badge = document.createElement('div');
-                    badge.className = 'drag-badge';
-                    badge.innerText = selectedTabIds.size;
-                    clone.appendChild(badge);
-                }
-                clone.style.left = rect.left + 'px';
-                clone.style.top = rect.top + 'px';
-                clone.style.setProperty('--drag-width', rect.width + 'px');
-                document.body.appendChild(clone);
-
-                // --- HIGH-PERFORMANCE BATCH GATHER ---
-                batchClones = [];
-                if (selectedTabIds.size > 1) {
-                    selectedTabIds.forEach(tid => {
-                        if (tid === id) return; // Skip the one we are actively holding
-
-                        const otherCard = document.querySelector(`.card[data-tid="${tid}"]`);
-                        if (otherCard) {
-                            const oRect = otherCard.getBoundingClientRect();
-                            const bClone = otherCard.cloneNode(true);
-                            bClone.classList.remove('selected', 'focused');
-                            bClone.classList.add('batch-clone');
-
-                            // Lock it exactly where it is
-                            bClone.style.left = oRect.left + 'px';
-                            bClone.style.top = oRect.top + 'px';
-                            bClone.style.width = oRect.width + 'px';
-                            bClone.style.height = oRect.height + 'px';
-                            document.body.appendChild(bClone);
-                            otherCard.classList.add('ghost-card');
-
-                            void bClone.offsetWidth;
-
-                            // Fly it to the ORIGINAL slot of the card we are dragging
-                            bClone.classList.add('fly-animate');
-                            bClone.style.left = rect.left + 'px';
-                            bClone.style.top = rect.top + 'px';
-                            bClone.style.transform = 'scale(0.8)';
-                            bClone.style.opacity = '0'; // Fade out as it hits the origin
-
-                            batchClones.push({ clone: bClone, original: otherCard, rect: oRect });
-                        }
-                    });
-
-                    // pop the unified CSS stack onto the cursor's card!
-                    setTimeout(() => {
-                        if (clone) clone.classList.add('show-stack');
-                    }, 52);
-                }
-
-                // --- NEW: MEMORIZE ORIGINAL POSITIONS ---
-                let ghostCounter = 0;
-                document.querySelectorAll('.ghost-card').forEach(ghost => {
-                    if (!ghost.dataset.ghostId) {
-                        const id = 'ghost-' + ghostCounter++;
-                        ghost.dataset.ghostId = id;
-                        const anchor = document.createElement('div');
-                        anchor.id = 'anchor-' + id;
-                        anchor.style.display = 'none';
-                        ghost.parentNode.insertBefore(anchor, ghost);
-                    }
-                });
-            }
-            updateDragVisuals(lastX, lastY);
-        }
-
-        async function onMouseUp(e) {
-            stopAutoScroll();
-            if (!isDragStarted) { cleanup(); return; }
-
-            card.dataset.wasDragged = "true";
-
-            // 1. Parse what is currently being dragged
-            let itemsToProcess = Array.from(selectedTabIds);
-            if (itemsToProcess.length === 0) itemsToProcess = [id]; // Fallback if no selection
-
-            const tabsToProcess = [];
-            const groupsToProcess = [];
-            itemsToProcess.forEach(tid => {
-                const el = document.querySelector(`.card[data-tid="${tid}"]`);
-                if (el) {
-                    if (el.classList.contains('group-card')) groupsToProcess.push(tid);
-                    else tabsToProcess.push(tid);
-                }
-            });
-
-            let actionTaken = false;
-
-            // --- DROP ZONE: UNGROUP CARD (Only Tabs) ---
-            if (currentTarget && currentTarget.classList.contains('add-card') && currentState.mode === 'group') {
-                if (tabsToProcess.length > 0) {
-                    actionTaken = true;
-
-                    // FIX: Instantly destroy clone & reset visuals before 'await' lag
-                    if (clone) { clone.remove(); clone = null; }
-                    card.classList.remove('ghost-card');
-                    clearTarget();
-
-                    try {
-                        await chrome.tabs.ungroup(tabsToProcess);
-                        selectedTabIds.clear(); lastSelectedTabId = null; renderGrid(true);
-                    } catch (err) {
-                        setTimeout(() => {
-                            chrome.tabs.ungroup(tabsToProcess).then(() => {
-                                selectedTabIds.clear(); lastSelectedTabId = null; renderGrid(true);
-                            }).catch(() => { });
-                        }, 150);
-                    }
-                }
-            }
-            // --- DROP ZONE: REORDER OR GROUP ---
-            else if (currentTarget) {
-                const targetId = parseInt(currentTarget.dataset.tid);
-                const isTargetGroup = currentTarget.classList.contains('group-card');
-                const dropZone = currentTarget.dataset.dropZone; // 'left', 'right', or 'center'
-
-                if (tabsToProcess.length > 0) {
-                    actionTaken = true;
-
-                    // FIX: Instantly destroy clone & reset visuals before 'await' lag
-                    if (clone) { clone.remove(); clone = null; }
-                    card.classList.remove('ghost-card');
-                    clearTarget();
-
-                    if (dropZone === 'center') {
-                        // --- GROUPING LOGIC (ALT/OPTION PRESSED) ---
-                        try {
-                            if (isTargetGroup) {
-                                await chrome.tabs.group({ tabIds: tabsToProcess, groupId: targetId });
-                                selectedTabIds.clear(); lastSelectedTabId = null; renderGrid(true);
-                            } else {
-                                const idsToGroup = [...tabsToProcess, targetId];
-                                const newGroupId = await chrome.tabs.group({ tabIds: idsToGroup });
-                                selectedTabIds.clear(); lastSelectedTabId = null;
-
-                                await renderGrid(true);
-
-                                const newGroupCard = document.querySelector(`.card.group-card[data-tid="${newGroupId}"]`);
-                                if (newGroupCard) {
-                                    const rect = newGroupCard.getBoundingClientRect();
-                                    const ev = new MouseEvent('contextmenu', {
-                                        bubbles: true, cancelable: true,
-                                        clientX: rect.left + 30, clientY: rect.top + 30
-                                    });
-                                    newGroupCard.dispatchEvent(ev);
-                                }
-                            }
-                        } catch (err) {
-                            setTimeout(() => {
-                                const groupArgs = isTargetGroup ? { tabIds: tabsToProcess, groupId: targetId } : { tabIds: [...tabsToProcess, targetId] };
-                                chrome.tabs.group(groupArgs).then(async (newGroupId) => {
-                                    selectedTabIds.clear(); lastSelectedTabId = null;
-                                    await renderGrid(true);
-
-                                    if (!isTargetGroup) {
-                                        const newGroupCard = document.querySelector(`.card.group-card[data-tid="${newGroupId}"]`);
-                                        if (newGroupCard) {
-                                            const rect = newGroupCard.getBoundingClientRect();
-                                            const ev = new MouseEvent('contextmenu', {
-                                                bubbles: true, cancelable: true,
-                                                clientX: rect.left + 30, clientY: rect.top + 30
-                                            });
-                                            newGroupCard.dispatchEvent(ev);
-                                        }
-                                    }
-                                }).catch(() => { });
-                            }, 150);
-                        }
-                    } else {
-                        // --- REORDER LOGIC (NO KEY PRESSED) ---
-                        // In group mode, only allow reordering within the current group
-                        if (currentState.mode === 'group') {
-
-                            const targetTab = await chrome.tabs.get(targetId);
-
-                            // Ignore drops outside the active group
-                            if (targetTab.groupId !== currentState.groupId) {
-                                return;
-                            }
-                        }
-                        try {
-                            let insertIndex = -1;
-
-                            if (isTargetGroup) {
-                                // If dropped next to a group folder, find the group's boundaries
-                                const groupTabs = await chrome.tabs.query({ groupId: targetId });
-                                if (groupTabs.length > 0) {
-                                    groupTabs.sort((a, b) => a.index - b.index);
-                                    insertIndex = dropZone === 'left' ? groupTabs[0].index : groupTabs[groupTabs.length - 1].index + 1;
-                                }
-                            } else {
-                                // If dropped next to a normal tab
-                                const visualIds = visualOrderSnapshot
-                                    .filter(v => !v.isGroup)
-                                    .map(v => v.id);
-
-                                const filteredVisualIds = visualIds.filter(
-                                    id => !tabsToProcess.includes(id)
-                                );
-
-                                const targetVisualIndex = filteredVisualIds.indexOf(targetId);
-
-                                if (targetVisualIndex !== -1) {
-                                    insertIndex =
-                                        dropZone === 'left'
-                                            ? targetVisualIndex
-                                            : targetVisualIndex + 1;
-                                }
-
-                                if (insertIndex !== -1) {
-                                    const liveTabs = await chrome.tabs.query({
-                                        windowId: (await chrome.tabs.get(tabsToProcess[0])).windowId
-                                    });
-
-                                    liveTabs.sort((a, b) => a.index - b.index);
-
-                                    const remainingTabs = liveTabs.filter(
-                                        t => !tabsToProcess.includes(t.id)
-                                    );
-
-                                    if (insertIndex >= remainingTabs.length) {
-                                        insertIndex = remainingTabs[remainingTabs.length - 1].index + 1;
-                                    } else {
-                                        insertIndex = remainingTabs[insertIndex].index;
-                                    }
-                                }
-                            }
-
-                            if (insertIndex !== -1) {
-
-                                // Get full tab objects so we know original positions
-                                const draggedTabs = await Promise.all(
-                                    tabsToProcess.map(id => chrome.tabs.get(id))
-                                );
-
-                                // Sort by native Chrome order
-                                draggedTabs.sort((a, b) => a.index - b.index);
-
-                                // Count how many dragged tabs are BEFORE the insert point
-                                const removedBeforeTarget = draggedTabs.filter(
-                                    t => t.index < insertIndex
-                                ).length;
-
-                                // Adjust destination because Chrome removes dragged tabs first
-                                const correctedIndex = insertIndex - removedBeforeTarget;
-
-                                // Preserve visual order during move
-                                const orderedIds = draggedTabs.map(t => t.id);
-
-                                await chrome.tabs.move(orderedIds, {
-                                    index: correctedIndex
-                                });
-                            }
-
-                            selectedTabIds.clear(); lastSelectedTabId = null;
-
-                            // Re-render the grid to show the new layout
-                            renderGrid(true);
-                        } catch (err) {
-                            console.warn("Failed to reorder tabs", err);
-                        }
-                    }
-                }
-            }
-
-            // --- FINAL CLEANUP LOGIC ---
-            function finishDragCleanup() {
-                card.classList.remove('ghost-card');
-                if (clone) clone.remove();
-
-                // --- NEW: Clean up the batch clones ---
-                batchClones.forEach(bc => {
-                    bc.clone.remove();
-                    if (bc.original) bc.original.classList.remove('ghost-card');
-                });
-                batchClones = [];
-
-                document.querySelectorAll('[id^="anchor-ghost-"]').forEach(a => a.remove());
-                document.querySelectorAll('.ghost-card').forEach(g => delete g.dataset.ghostId);
-
-                setTimeout(() => { delete card.dataset.wasDragged; }, 50);
-
-                const addCardNode = document.querySelector('.add-card');
-                if (addCardNode && currentState.mode === 'group') {
-                    addCardNode.classList.remove('remove-mode');
-                    addCardNode.innerHTML = originalAddCardHTML;
-                }
-                clearTarget();
-                cleanup();
-            }
-
-            // SNAP-BACK ENGINE
-            if (!actionTaken && clone) {
-                const finalRect = card.getBoundingClientRect();
-
-                // 1. Instantly remove the fake stack illusion
-                clone.classList.remove('show-stack');
-
-                // 2. Use Web Animations API for smooth, synchronized snap-back
-                const snapAnimation = clone.animate([
-                    {
-                        left: clone.style.left,
-                        top: clone.style.top,
-                        transform: 'scale(0.90)',
-                        opacity: 0.8
-                    },
-                    {
-                        left: finalRect.left + 'px',
-                        top: finalRect.top + 'px',
-                        transform: 'scale(1)',
-                        opacity: 1
-                    }
-                ], {
-                    duration: 250,
-                    easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-                    fill: 'forwards'
-                });
-
-                // 3. Animate batch clones back to their original positions
-                const batchAnimations = batchClones.map(bc => {
-                    const currentDropRect = clone.getBoundingClientRect();
-
-                    // Reset to current drop position
-                    bc.clone.style.left = currentDropRect.left + 'px';
-                    bc.clone.style.top = currentDropRect.top + 'px';
-                    bc.clone.style.transform = 'scale(0.8)';
-                    bc.clone.style.opacity = '1';
-
-                    // Animate back to original position
-                    return bc.clone.animate([
-                        {
-                            left: currentDropRect.left + 'px',
-                            top: currentDropRect.top + 'px',
-                            transform: 'scale(0.8)',
-                            opacity: 1
-                        },
-                        {
-                            left: bc.rect.left + 'px',
-                            top: bc.rect.top + 'px',
-                            transform: 'scale(1)',
-                            opacity: 1
-                        }
-                    ], {
-                        duration: 250,
-                        easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)',
-                        fill: 'forwards'
-                    });
-                });
-
-                // 4. Clean up after animation completes
-                Promise.all([snapAnimation.finished, ...batchAnimations.map(a => a.finished)])
-                    .then(() => {
-                        finishDragCleanup();
-                    });
-            } else {
-                finishDragCleanup();
-            }
-        }
-
-        function cleanup() {
-            document.removeEventListener('mousemove', onMouseMove);
-            document.removeEventListener('mouseup', onMouseUp);
-            document.removeEventListener('keydown', onKeyDown);
-            document.removeEventListener('keyup', onKeyUp);
-        }
-
-        startAutoScroll();
-        document.addEventListener('mousemove', onMouseMove);
-        document.addEventListener('mouseup', onMouseUp);
     });
+
+    sortableGrid.option('disabled', !isReorderEnabled());
+    syncSortableSelection();
 }
 
 function renderSelectionVisuals() {
@@ -841,6 +446,7 @@ function renderSelectionVisuals() {
         if (selectedTabIds.has(tid)) c.classList.add('selected');
         else c.classList.remove('selected');
     });
+    syncSortableSelection();
 }
 
 function showGroupNameModal(sourceTabIds, targetTabId) {
@@ -1221,7 +827,6 @@ async function renderGrid(preserveScroll = false) {
                     activeModalGroupId = null;
                 }, { once: true });
             });
-            makeDraggable(card, group.id, true);
             grid.appendChild(card);
 
         } else {
@@ -1274,7 +879,6 @@ async function renderGrid(preserveScroll = false) {
                 </div>
             `;
 
-            makeDraggable(card, tab.id, false);
             const images = card.querySelectorAll('img');
             images.forEach(image => { image.addEventListener('error', function () { this.src = 'icon.png'; }); });
             if (img) {
@@ -1348,6 +952,8 @@ async function renderGrid(preserveScroll = false) {
     if (preserveScroll) {
         window.scrollTo(0, savedScrollY);
     }
+
+    initSortableGrid();
 }
 
 function saveState() { chrome.storage.local.set({ 'viewMode': currentState.mode, 'groupId': currentState.groupId }); }

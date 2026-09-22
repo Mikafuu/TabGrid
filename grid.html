@@ -385,55 +385,7 @@
             background: #d70015;
         }
 
-        /* --- REORDER INSERTION LINE --- */
-       
-
-        /* --- PUSH ANIMATION FOR REORDERING --- */
-        .card.flip-transition {
-            transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-        }
-        .card.no-transition {
-            transition: none !important;
-        }
-
-        /* --- DROP TARGET OVERLAY --- */
-        .drop-target-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: #fdfdfd;
-            /* Light background */
-            z-index: 50;
-            /* Above everything else in the card */
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            border: 2px dashed #007aff;
-            /* Dashed Blue Border */
-            border-radius: 12px;
-            color: #007aff;
-            pointer-events: none;
-            /* Let mouse events pass through */
-            animation: fadeIn 0.2s ease;
-        }
-
-        .drop-target-overlay svg {
-            margin-bottom: 8px;
-            width: 32px;
-            height: 32px;
-        }
-
-        .drop-target-overlay span {
-            font-size: 13px;
-            font-weight: 600;
-            text-align: center;
-            padding: 0 10px;
-        }
-
-        /* Animation for the overlay appearing */
+        /* Shared fade animation */
         @keyframes fadeIn {
             from {
                 opacity: 0;
@@ -555,88 +507,16 @@
         }
 
 
-        /* --- SIMPLIFIED DRAGGING CLONE --- */
-        .dragging-card {
-            position: fixed !important;
-            z-index: 1000;
-            pointer-events: none;
-            /* Make the card slightly transparent while dragging */
-            opacity: 0.8 !important;
+        .sortable-ghost {
+            opacity: 0.35;
+        }
+
+        .sortable-chosen {
+            cursor: grabbing;
+        }
+
+        .sortable-drag {
             box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
-            width: var(--drag-width);
-            margin: 0;
-            /* Add a native shrink effect when picked up */
-            transform: scale(0.90) !important;
-            transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease !important;
-            overflow: visible !important;
-        }
-
-        /* Keep the inner preview rounded when overflow is visible */
-        .dragging-card .card-preview {
-            border-bottom-left-radius: 12px;
-            border-bottom-right-radius: 12px;
-        }
-
-
-        /* --- BATCH DRAG ANIMATION --- */
-        .batch-clone {
-            position: fixed !important;
-            z-index: 990;
-            /* Sits right behind the main dragged card (z-index: 1000) */
-            pointer-events: none;
-            margin: 0;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
-        }
-
-        .batch-clone.fly-animate {
-            /* The flight curve for gathering and snapping back */
-            transition: left 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
-                top 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
-                transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1),
-                opacity 0.2s ease !important;
-        }
-
-        /* --- HIGH PERFORMANCE BATCH STACK ILLUSION --- */
-
-        /* Base styles for the fake cards */
-        .dragging-card.is-batch.show-stack.stack-2::before,
-        .dragging-card.is-batch.show-stack.stack-3::before,
-        .dragging-card.is-batch.show-stack.stack-3::after {
-            content: "";
-            position: absolute;
-            background: #ffffff;
-            border-radius: 12px;
-            border: 1px solid #e0e0e0;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            height: 100%;
-            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        /* Offset for the 2nd card in the stack (Shows on 2+ cards) */
-        .dragging-card.is-batch.show-stack.stack-2::before,
-        .dragging-card.is-batch.show-stack.stack-3::before {
-            top: 10px;
-            left: 10px;
-            z-index: -1;
-        }
-
-        /* Offset for the 3rd card in the stack (Shows ONLY on 3+ cards) */
-        .dragging-card.is-batch.show-stack.stack-3::after {
-            top: 20px;
-            left: 20px;
-            z-index: -2;
-        }
-
-        /* Dark Mode for the Fake Stack */
-
-
-
-
-        .ghost-card {
-            /* Ghost card  */
-            opacity: 0;
-
         }
 
         .controls {
@@ -697,42 +577,6 @@
         .add-content span {
             font-weight: 600;
             font-size: 14px;
-        }
-
-        /* --- UNGROUP TARGET STYLES --- */
-
-        /* The base transformation when dragging starts */
-        .card.add-card.remove-mode {
-            border-color: #ff9500;
-            background: #fff8f0;
-            color: #ff9500;
-            transition: all 0.2s ease;
-        }
-
-        /* Rotate the icon or change color */
-        .card.add-card.remove-mode svg {
-            color: #ff9500;
-            /* Optional: rotate to look like an 'X' or 'Exit' */
-            transform: rotate(45deg);
-            transition: transform 0.2s;
-        }
-
-        .card.add-card.remove-mode .add-content span {
-            color: #ff9500;
-            font-weight: 700;
-        }
-
-        /* The hover effect when you are actually over it */
-        .card.add-card.remove-mode.drag-over-target {
-            background: #ff9500;
-            color: white;
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(255, 149, 0, 0.3);
-        }
-
-        .card.add-card.remove-mode.drag-over-target svg,
-        .card.add-card.remove-mode.drag-over-target .add-content span {
-            color: white;
         }
 
         h1 {
@@ -831,38 +675,6 @@
         .card.selected .card-preview {
             background-color: rgb(181, 195, 249) !important;
         }
-
-        /* --- MULTI-DRAG BADGE --- */
-        .drag-badge {
-            position: absolute;
-            top: -10px;
-            right: -10px;
-            background: #ff3b30;
-            color: white;
-            font-size: 14px;
-            font-weight: 700;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-            z-index: 2000;
-            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes popIn {
-            from {
-                transform: scale(0);
-            }
-
-            to {
-                transform: scale(1);
-            }
-        }
-
-
 
         /* Ensure the close button sits on top of everything */
         .card-info {
@@ -1191,26 +1003,6 @@
 
         }
 
-        /* Dark Mode for the Fake Stack */
-        @media (prefers-color-scheme: dark) {
-
-            .dragging-card.is-batch.show-stack::before,
-            .dragging-card.is-batch.show-stack::after {
-                background: #252525;
-                border-color: #444;
-            }
-        }
-
-        @media (prefers-color-scheme: dark) {
-
-            .dragging-card.is-batch.show-stack.stack-2::before,
-            .dragging-card.is-batch.show-stack.stack-3::before,
-            .dragging-card.is-batch.show-stack.stack-3::after {
-                background: #252525;
-                border-color: #444;
-            }
-        }
-
         @media (prefers-color-scheme: dark) {
             .card.group-card {
                 background: rgb(54, 71, 76);
@@ -1241,21 +1033,6 @@
                 background: #444;
             }
         }
-
-        /* Dark Mode for Ungroup Target Styles */
-        @media (prefers-color-scheme: dark) {
-            .card.add-card.remove-mode {
-                background: #3a2a1a;
-                border-color: #ff9500;
-            }
-
-            .card.add-card.remove-mode.drag-over-target {
-                background: #ff9500;
-                color: #fff;
-            }
-        }
-
-
 
         /* Dark Mode for Card and Body */
         @media (prefers-color-scheme: dark) {
@@ -1555,7 +1332,7 @@
         </ul>
     </div>
 
-    <script src="grid.js"></script>
+    <script type="module" src="grid.js"></script>
 </body>
 
 </html>
