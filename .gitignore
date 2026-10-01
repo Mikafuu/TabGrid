@@ -1,0 +1,4 @@
+# Local macOS metadata and disposable verification/research artifacts.
+.DS_Store
+output/
+tmp/

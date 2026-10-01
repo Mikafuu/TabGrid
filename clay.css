@@ -1,0 +1,122 @@
+/* Inspired by codeAdrian/clay.css: one floating shadow and two sculpted inner
+   shadows. Original local styling; no framework or external runtime assets. */
+html[data-visual-style=clay] {
+    --material-radius: 28px;
+    --material-control-radius: 16px;
+    --clay-light: rgb(255 255 255 / .48);
+    --clay-shade: color-mix(in srgb,var(--text) 10%,transparent);
+    --clay-ambient: color-mix(in srgb,var(--text) 14%,transparent);
+    --clay-edge: color-mix(in srgb,var(--surface) 82%,var(--line));
+    --clay-raised: 6px 8px 16px var(--clay-ambient),inset -5px -5px 10px var(--clay-shade),inset 5px 5px 10px var(--clay-light);
+    --clay-control: 3px 4px 8px var(--clay-ambient),inset -3px -3px 6px var(--clay-shade),inset 3px 3px 6px var(--clay-light);
+    --clay-pressed: 1px 2px 4px var(--clay-ambient),inset 2px 3px 5px var(--clay-shade),inset -2px -2px 4px var(--clay-light);
+    --material-shadow: var(--clay-raised);
+    --material-inset: var(--clay-control);
+    --material-sheen: none;
+    background: var(--bg);
+}
+html[data-color-mode=dark][data-visual-style=clay] {
+    --clay-light: rgb(255 255 255 / .075);
+    --clay-shade: rgb(0 0 0 / .3);
+    --clay-ambient: rgb(0 0 0 / .34);
+}
+html[data-visual-style=clay] body { background: transparent; }
+html[data-visual-style=clay] :is(h1,h2,h3) { font-weight: 700; }
+html[data-visual-style=clay] button { border-radius: 16px; }
+html[data-visual-style=clay] :is(.page-actions,.group-controls,.dialog-actions,.backup-actions) > button,
+html[data-visual-style=clay] .settings-panels button,
+html[data-visual-style=clay] #undo-toast button {
+    background-color: var(--surface); border-color: var(--clay-edge); box-shadow: var(--clay-control);
+    transition: background-color 180ms ease,border-color 180ms ease,color 180ms ease,box-shadow 180ms ease;
+}
+html[data-visual-style=clay] :is(.page-actions,.group-controls,.dialog-actions,.backup-actions) > button:active:not(:disabled),
+html[data-visual-style=clay] .settings-panels button:active:not(:disabled) { box-shadow: var(--clay-pressed); }
+html[data-visual-style=clay] :is(.page-actions,.dialog-actions) > .primary {
+    background-color: var(--accent); color: var(--on-accent); border-color: transparent;
+    --clay-light: rgb(255 255 255 / .12);
+}
+html[data-visual-style=clay] :is(.page-actions,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); }
+html[data-visual-style=clay] :is(#page-menu-btn,#group-menu-btn,#group-done) { border-radius: 50%; }
+html[data-visual-style=clay] .sources { border: 0; padding: 5px 0; gap: 12px; background: transparent; }
+html[data-visual-style=clay] .sources button {
+    padding: 10px 18px; border: 1px solid var(--clay-edge); border-radius: 18px;
+    background: var(--surface); color: var(--muted); box-shadow: var(--clay-control);
+}
+html[data-visual-style=clay] .sources button:hover:not(:disabled) { background: var(--selected); color: var(--text); }
+html[data-visual-style=clay] .sources button[aria-current=page] {
+    background: var(--accent); color: var(--on-accent); border-color: transparent;
+    --clay-light: rgb(255 255 255 / .12); font-weight: 650;
+}
+html[data-visual-style=clay] .sources button:active:not(:disabled) { box-shadow: var(--clay-pressed); }
+/* A visible outline identifies editable fields, separate from molded buttons. */
+html[data-visual-style=clay] :is(input[type=search],input[type=text]:not(.filter-picker input),input[type=number],textarea,.filter-picker,select) {
+    background-color: var(--surface); border-color: var(--line);
+    box-shadow: 0 3px 6px color-mix(in srgb,var(--clay-ambient) 45%,transparent),inset -2px -2px 4px var(--clay-shade),inset 2px 2px 4px var(--clay-light);
+}
+html[data-visual-style=clay] :is(input,textarea)::placeholder { opacity: 1; }
+html[data-visual-style=clay] .filter-expand { border-radius: 0 16px 16px 0; }
+html[data-visual-style=clay] :is(.live-filters,.toolbar,.font-sample) {
+    background: color-mix(in srgb,var(--surface) 55%,var(--bg)); border: 1px solid var(--clay-edge); border-radius: 22px;
+}
+html[data-visual-style=clay] .live-filters > button { background-color: var(--surface); border-color: var(--clay-edge); box-shadow: var(--clay-control); }
+html[data-visual-style=clay] #size-slider {
+    appearance: none; height: 10px; margin: 16px 0 7px; border: 0; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(to right,var(--accent) var(--size-progress,40%),var(--surface) var(--size-progress,40%));
+    box-shadow: inset 1px 2px 3px var(--clay-shade),inset -1px -1px 2px var(--clay-light);
+}
+html[data-visual-style=clay] #size-slider::-webkit-slider-thumb { appearance: none; width: 24px; height: 24px; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: var(--clay-control); }
+html[data-visual-style=clay] #size-slider::-moz-range-thumb { width: 18px; height: 18px; border: 3px solid var(--surface); border-radius: 50%; background: var(--accent); box-shadow: var(--clay-control); }
+html[data-visual-style=clay] .card > .card-surface { border-color: var(--clay-edge); box-shadow: var(--clay-raised); }
+/* Colored frames keep a quiet rim so the assigned/last-opened fill stays clear. */
+html[data-visual-style=clay] .card:is(.group-card,.last-opened) { --clay-light: rgb(255 255 255 / .1); }
+html[data-visual-style=clay] .card.selected > .card-surface { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--surface),var(--clay-raised); }
+html[data-visual-style=clay] .card.last-opened.selected > .card-surface { border-color: var(--last-opened-text); }
+html[data-visual-style=clay] .card-preview { border-radius: 18px; background: color-mix(in srgb,var(--surface) 45%,var(--bg)); box-shadow: inset 1px 2px 4px var(--clay-shade); }
+html[data-visual-style=clay] .group-preview { background: transparent; box-shadow: none; gap: 6px; }
+html[data-visual-style=clay] .group-tile { border-radius: 13px; }
+html[data-visual-style=clay] :is(.preview-favicon,.tile-favicon) { border-radius: 9px; box-shadow: var(--clay-control); }
+html[data-visual-style=clay] :is(.card-menu,.card-close) { border-radius: 50%; }
+html[data-visual-style=clay] :is(dialog,#context-menu,#context-submenu,#page-menu,.filter-picker-list,.search-history,#undo-toast) {
+    background-color: var(--surface); border-color: var(--clay-edge); border-radius: 28px; box-shadow: var(--clay-raised); backdrop-filter: none;
+}
+html[data-visual-style=clay] :is(#context-menu,#context-submenu,#page-menu) { padding: 10px; }
+html[data-visual-style=clay] :is(#context-menu,#context-submenu,#page-menu) button { border-radius: 14px; }
+html[data-visual-style=clay] :is(#context-menu,#context-submenu,#page-menu) button:not(.menu-colors button):is(:hover,:focus-visible) { background: var(--selected); box-shadow: var(--clay-control); }
+html[data-visual-style=clay] :is(.filter-picker-option,.search-history [role=option]) { border-radius: 14px; }
+html[data-visual-style=clay] .menu-colors button { background-image: none; box-shadow: none; }
+html[data-visual-style=clay] dialog::backdrop { background: rgb(13 23 35 / .28); backdrop-filter: none; }
+/* Only fade the group dialog; its drawer must stay fixed to the viewport. */
+html[data-visual-style=clay] #group-dialog { background: var(--surface); }
+html[data-visual-style=clay] .group-header { background: var(--surface); border-color: var(--clay-edge); }
+html[data-visual-style=clay] .group-content { background: var(--bg); }
+html[data-visual-style=clay] #settings-dialog > .dialog-heading { border-color: var(--clay-edge); }
+html[data-visual-style=clay] #settings-done { box-shadow: none; border-radius: 50%; background: transparent; }
+html[data-visual-style=clay] .settings-tabs { background: var(--bg); border-color: var(--clay-edge); padding: 16px 12px; }
+html[data-visual-style=clay] .settings-tabs button { border: 1px solid transparent; border-radius: 16px; }
+html[data-visual-style=clay] .settings-tabs button[aria-selected=true] { background: var(--selected); color: var(--text); border-color: var(--clay-edge); box-shadow: var(--clay-control); }
+html[data-visual-style=clay] :is(.theme-choice,.style-choice) { border-radius: 22px; border-color: var(--clay-edge); background: var(--surface); box-shadow: var(--clay-control); }
+html[data-visual-style=clay] input[type=checkbox]:not(.card-select) { background: var(--surface); border-color: var(--line); box-shadow: inset 1px 2px 3px var(--clay-shade); }
+html[data-visual-style=clay] input[type=checkbox]:not(.card-select):checked { background: var(--accent); border-color: var(--accent); }
+html[data-visual-style=clay] input[type=checkbox]:not(.card-select)::before { box-shadow: var(--clay-control); }
+html[data-visual-style=clay] .drop-targets { background: var(--surface); border-color: var(--clay-edge); box-shadow: var(--clay-control); }
+html[data-visual-style=clay] .drawer-handle { color: var(--accent); }
+html[data-visual-style=clay] .drawer-resize { background: transparent; }
+html[data-visual-style=clay] .drop-target { border-radius: 16px; box-shadow: var(--clay-control); }
+html[data-visual-style=clay] :is(dialog,[popover],.search-history,#undo-toast) { transition: display 240ms allow-discrete,overlay 240ms allow-discrete; }
+html[data-visual-style=clay] dialog::backdrop { transition: display 240ms allow-discrete,overlay 240ms allow-discrete,background-color 240ms ease; }
+html[data-visual-style=clay] dialog:not([open])::backdrop { background-color: transparent; }
+html[data-visual-style=clay] :is(dialog:not([open]),[popover]:not(:popover-open)),html[data-visual-style=clay] dialog:not([open])::backdrop { pointer-events: none; }
+@starting-style { html[data-visual-style=clay] dialog[open]::backdrop { background-color: transparent; } }
+.material-sample[data-material=clay] .material-sample-tile {
+    border-radius: 15px; box-shadow: 3px 4px 7px color-mix(in srgb,var(--text) 18%,transparent),inset -3px -3px 5px color-mix(in srgb,var(--text) 12%,transparent),inset 3px 3px 5px rgb(255 255 255 / .3);
+}
+@media(max-width:650px) {
+    html[data-visual-style=clay] .sources { gap: 8px; }
+    html[data-visual-style=clay] .sources button { padding: 9px 12px; }
+    html[data-visual-style=clay] .settings-tabs { padding: 12px 6px; }
+}
+@media(forced-colors:active) {
+    html[data-visual-style=clay] { --clay-raised: none; --clay-control: none; --clay-pressed: none; }
+    html[data-visual-style=clay] :is(.card-surface,.sources,button,input,select,.filter-picker,dialog,[popover]) { border: 1px solid CanvasText; box-shadow: none; background-image: none; }
+    html[data-visual-style=clay] .sources button[aria-current=page],html[data-visual-style=clay] .settings-tabs button[aria-selected=true] { background: Highlight; color: HighlightText; }
+}

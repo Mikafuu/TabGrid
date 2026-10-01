@@ -1,0 +1,106 @@
+/* Material is independent of tint. Never transform .card slots or animate layout. */
+html:where([data-visual-style]:not([data-visual-style=classic])) {
+    --material-light: color-mix(in srgb, var(--surface) 65%, white);
+    --material-shade: color-mix(in srgb, var(--bg) 75%, #182335);
+    --material-radius: 12px;
+    --material-control-radius: 8px;
+    --material-shadow: none;
+    --material-inset: none;
+    --material-sheen: none;
+    --soft-shadow: var(--material-shadow) !important;
+}
+html[data-color-mode=dark][data-visual-style]:not([data-visual-style=classic]) {
+    --material-light: color-mix(in srgb, var(--surface) 93%, white);
+    --material-shade: color-mix(in srgb, var(--bg) 65%, black);
+}
+html[data-visual-style=flat] { --menu-shadow: 0 0 0 1px var(--line) !important; }
+html[data-visual-style=glass] {
+    --material-radius: 18px;
+    --material-control-radius: 10px;
+    --material-shadow: inset 0 1px 0 var(--material-light), inset 1px 0 0 color-mix(in srgb,var(--material-light) 50%,transparent), 0 8px 24px color-mix(in srgb,var(--material-shade) 22%,transparent);
+    --material-inset: inset 0 1px 3px color-mix(in srgb,var(--material-shade) 30%,transparent);
+    --material-sheen: linear-gradient(125deg, color-mix(in srgb,var(--surface) 15%,transparent), transparent 50%);
+    background: radial-gradient(ellipse at 0 10%,color-mix(in srgb,var(--accent) 16%,var(--bg)),transparent 60%), radial-gradient(ellipse at 95% 65%,color-mix(in srgb,var(--accent) 10%,var(--bg)),var(--bg) 65%);
+    background-attachment: fixed;
+}
+html[data-visual-style=glass] body { background: transparent; }
+html[data-visual-style=neumorphic] {
+    --material-radius: 16px;
+    --material-control-radius: 12px;
+    --material-shadow: 5px 5px 12px var(--material-shade), -5px -5px 12px var(--material-light);
+    --material-inset: inset 3px 3px 6px var(--material-shade), inset -3px -3px 6px var(--material-light);
+}
+html[data-visual-style=clay] {
+    --material-radius: 24px;
+    --material-control-radius: 14px;
+    --material-shadow: inset 3px 3px 5px color-mix(in srgb,var(--material-light) 65%,transparent), inset -4px -4px 7px color-mix(in srgb,var(--material-shade) 55%,transparent), 4px 8px 0 -3px color-mix(in srgb,var(--accent) 15%,var(--bg)), 0 12px 18px color-mix(in srgb,var(--material-shade) 38%,transparent);
+    --material-inset: inset 2px 3px 4px color-mix(in srgb,var(--material-shade) 55%,transparent), inset -2px -2px 3px var(--material-light);
+}
+html[data-visual-style]:not([data-visual-style=classic]) .card { border-radius: var(--material-radius); }
+html[data-visual-style]:not([data-visual-style=classic]) .card-surface {
+    box-shadow: var(--material-shadow);
+    background-image: var(--material-sheen);
+}
+/* Preserve solid group / last-opened fills and selected outlines in every material. */
+html[data-visual-style]:not([data-visual-style=classic]) .card.selected > .card-surface { box-shadow: inset 0 0 0 2px var(--surface), var(--material-shadow); }
+html[data-visual-style=neumorphic] .card:not(.group-card):not(.last-opened) { --frame: var(--bg); }
+html[data-visual-style=clay] .card-preview { border-radius: 15px; }
+html[data-visual-style=glass] .card-preview { border-radius: 12px; }
+html[data-visual-style]:not([data-visual-style=classic]) :is(dialog,#context-menu,#context-submenu,#page-menu,.filter-picker-list,.search-history,.drop-targets,#undo-toast) {
+    border-radius: var(--material-radius);
+    box-shadow: var(--material-shadow);
+    background-image: var(--material-sheen);
+}
+html[data-visual-style=flat] :is(dialog,#context-menu,#context-submenu,#page-menu,.filter-picker-list,.search-history,.drop-targets,#undo-toast) { box-shadow: none; border-color: var(--line); }
+html[data-visual-style=neumorphic] :is(dialog,.live-filters,.font-sample,.settings-tabs) { background-color: var(--bg); }
+html[data-visual-style=clay] :is(.live-filters,.font-sample) { border-radius: 18px; box-shadow: var(--material-inset); }
+html[data-visual-style]:not([data-visual-style=classic]) :is(input[type=search],input[type=text]:not(.filter-picker input),input[type=number],select,textarea,.filter-picker) {
+    border-radius: var(--material-control-radius);
+    box-shadow: var(--material-inset);
+}
+html[data-visual-style=neumorphic] :is(input[type=search],input[type=text],input[type=number],textarea,.filter-picker) { background-color: var(--bg); }
+html[data-visual-style]:not([data-visual-style=classic]) .filter-picker input { background: transparent; box-shadow: none; }
+html:is([data-visual-style=neumorphic],[data-visual-style=clay],[data-visual-style=glass]) :is(.page-actions,.group-controls,.dialog-actions) > button {
+    border-radius: var(--material-control-radius); box-shadow: var(--material-shadow);
+}
+html:is([data-visual-style=neumorphic],[data-visual-style=clay]) :is(.page-actions,.group-controls,.dialog-actions) > button:active { box-shadow: var(--material-inset); }
+html[data-visual-style=flat] .card-preview { border-radius: 6px; }
+/* Blur only fixed overlays; scrolling cards remain lightweight, opaque, and legible. */
+@supports (backdrop-filter: blur(20px)) {
+    html[data-visual-style=glass] :is(dialog,#context-menu,#context-submenu,#page-menu,.filter-picker-list,.drop-targets,.search-history) {
+        background-color: color-mix(in srgb,var(--surface) 92%,transparent);
+        backdrop-filter: blur(20px) saturate(1.15);
+        border-color: color-mix(in srgb,var(--line) 70%,var(--surface));
+    }
+}
+@media (prefers-reduced-transparency: reduce) {
+    html[data-visual-style=glass] :is(dialog,#context-menu,#context-submenu,#page-menu,.filter-picker-list,.drop-targets,.search-history) { background-color: var(--surface); backdrop-filter: none; }
+}
+/* Settings samples show surface treatment without changing the user's tint. */
+.style-gallery { border: 0; padding: 0; margin: 24px 0; min-width: 0; }
+.style-gallery > legend { font-size: 14px; font-weight: 600; }
+.style-gallery > p { color: var(--muted); margin: 8px 0 16px; }
+.style-options { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.style-options .style-choice { position: relative; display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 10px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; min-width: 0; background: var(--surface); }
+.style-choice:hover { border-color: var(--accent); }
+.style-choice:has(input:checked) { outline: 2px solid var(--accent); outline-offset: 1px; }
+.style-choice:has(input:focus-visible) { outline: 3px solid var(--accent); outline-offset: 3px; }
+.style-choice > input { position: absolute; top: 12px; right: 12px; margin: 0; width: 14px; height: 14px; accent-color: var(--accent); z-index: 1; }
+.style-choice strong { font-size: 12px; font-weight: 600; overflow-wrap: anywhere; }
+.style-choice small { font-size: 11px; line-height: 1.45; color: var(--muted); }
+.material-sample { height: 78px; border-radius: 6px; background: var(--bg); display: flex; align-items: center; justify-content: center; gap: 8px; overflow: hidden; }
+.material-sample-tile { width: 45px; height: 43px; padding: 9px 8px; display: flex; flex-direction: column; justify-content: center; gap: 6px; box-sizing: border-box; background: var(--surface); border: 1px solid var(--line); border-radius: 7px; }
+.material-sample i { display: block; height: 3px; background: var(--accent); border-radius: 2px; opacity: .75; }
+.material-sample i:last-child { width: 65%; opacity: .35; }
+.material-sample > span:last-child { width: 16px; height: 16px; background: var(--accent); border-radius: 5px; }
+.material-sample[data-material=glass] { background: radial-gradient(at 10% 10%,var(--selected),var(--bg)); }
+.material-sample[data-material=glass] .material-sample-tile { background: color-mix(in srgb,var(--surface) 70%,transparent); border-color: var(--surface); box-shadow: inset 0 1px 1px var(--surface), 2px 5px 10px color-mix(in srgb,var(--text) 12%,transparent); }
+.material-sample[data-material=neumorphic] .material-sample-tile { background: var(--bg); border-color: color-mix(in srgb,var(--line) 30%,var(--bg)); box-shadow: 4px 4px 7px color-mix(in srgb,var(--bg) 80%,#182335),-4px -4px 7px var(--surface); border-radius: 10px; }
+.material-sample[data-material=clay] .material-sample-tile { border: 0; border-radius: 13px; box-shadow: inset 2px 2px 2px var(--surface),inset -3px -3px 4px color-mix(in srgb,var(--accent) 20%,var(--bg)),2px 5px 6px color-mix(in srgb,var(--text) 18%,transparent); }
+@media (max-width: 650px) { .style-options { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 420px) { .style-options { grid-template-columns: minmax(0,1fr); } .material-sample { height: 65px; } }
+@media (forced-colors: active) { .material-sample-tile { border: 1px solid CanvasText; } .style-choice:has(input:checked) { outline-color: Highlight; } }
+html[data-visual-style=glass] .card:not(.group-card):not(.last-opened) { --frame: color-mix(in srgb,var(--surface) 92%,transparent); }
+html[data-visual-style=flat] :is(.preview-favicon,.tile-favicon) { box-shadow: none; }
+html[data-visual-style=flat] dialog::backdrop { backdrop-filter: none; }
+@media (prefers-reduced-transparency: reduce) { html[data-visual-style=glass] .card:not(.group-card):not(.last-opened) { --frame: var(--surface); } }

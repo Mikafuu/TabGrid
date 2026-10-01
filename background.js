@@ -1,104 +1,74 @@
-// background.js
+import { WindowOrder } from './lib/window-order.mjs';
+import { Personalization } from './lib/personalization.mjs';
+import { TabActions } from './lib/tab-actions.mjs';
+import { isGridUrl } from './lib/tab-model.mjs';
 
-let isIntentionalOpen = false;
-
-chrome.action.onClicked.addListener((tab) => {
-  isIntentionalOpen = true; // Mark as intentionally opened
-
-  const gridUrl = chrome.runtime.getURL("grid.html");
-  chrome.tabs.create({ url: gridUrl }, () => {
-    // Reset the flag safely after the tab is created
-    setTimeout(() => { isIntentionalOpen = false; }, 500);
-  });
-
-  chrome.history.deleteUrl({ url: gridUrl });
+const gridUrl = chrome.runtime.getURL('grid.html');
+const actions = new TabActions(chrome, gridUrl);
+const personalization = new Personalization(chrome, gridUrl);
+let queue = Promise.resolve();
+const windowOrder = new WindowOrder(chrome, actions.private);
+const seedWindows = () => windowOrder.snapshot();
+queue = queue.then(seedWindows,seedWindows);
+chrome.windows.onCreated.addListener(win=>{const task=()=>windowOrder.created(win);queue=queue.then(task,task);queue.catch(()=>{});});
+chrome.windows.onRemoved.addListener(id=>{const task=()=>windowOrder.removed(id);queue=queue.then(task,task);queue.catch(()=>{});});
+chrome.action.onClicked.addListener(async tab => {
+    const remember = () => actions.rememberOpened(`tab:${tab.id}`);
+    queue = queue.then(remember, remember);
+    await queue.catch(() => {});
+    const existing = (await chrome.tabs.query({ windowId: tab.windowId })).find(t => isGridUrl(t.url, gridUrl));
+    if (existing) await chrome.tabs.update(existing.id, { active: true });
+    else await chrome.tabs.create({ url: gridUrl, windowId: tab.windowId });
 });
 
-// --- NEW: THE RESTORE INTERCEPTOR ---
-chrome.tabs.onCreated.addListener((tab) => {
-  const gridUrl = chrome.runtime.getURL("grid.html");
-  const tabUrl = tab.pendingUrl || tab.url || "";
-
-  // If Chrome creates the grid, but the user DID NOT click the extension icon...
-  if (tabUrl.startsWith(gridUrl) && !isIntentionalOpen) {
-
-    // 1. Instantly kill the mistakenly restored grid tab (SILENT CATCH ADDED)
-    chrome.tabs.remove(tab.id).catch(() => { });
-
-    // 2. Dig through the closed tabs list to find the actual website
-    if (chrome.sessions) {
-      chrome.sessions.getRecentlyClosed({ maxResults: 10 }, (sessions) => {
-        // Find the first closed item that is NOT a grid.html page
-        const validSession = sessions.find(s => {
-          const url = s.tab ? s.tab.url : (s.window && s.window.tabs.length > 0 ? s.window.tabs[0].url : "");
-          return url && !url.startsWith(gridUrl);
-        });
-
-        // 3. Restore the correct website
-        if (validSession) {
-          const sessionId = validSession.tab ? validSession.tab.sessionId : validSession.window.sessionId;
-          chrome.sessions.restore(sessionId);
-        }
-      });
-    }
-  }
+// A restored grid is an ordinary extension page. Never close unrelated tabs or
+// hijack Chrome's restore shortcut. Keep the grid available when switching tabs.
+chrome.runtime.onMessage.addListener((message, sender, respond) => {
+    if (sender.id !== chrome.runtime.id || !isGridUrl(sender.url, gridUrl) || message?.type !== 'tabgrid-action') return;
+    const run = async () => {
+        const { action, args = [] } = message;
+        if (!Array.isArray(args)) throw new Error('Invalid action arguments');
+        if (action === 'windowOrder') return windowOrder.snapshot();
+        if (action === 'preferences') return personalization.preferences();
+        if (action === 'updatePreferences') return personalization.updatePreferences(args[0]);
+        if (action === 'searchHistory') return personalization.history(...args);
+        if (action === 'preview') return personalization.preview(...args);
+        if (action === 'importSettings') return personalization.import(...args);
+        if (action === 'protectedGroups') return personalization.protectedGroups(...args);
+        const allowed = ['close', 'undo', 'restoreSession', 'group', 'move', 'reorder', 'dropAt', 'rememberOpened', 'lastOpenedSnapshot', 'addLinks', 'returnActive', 'activitySnapshot', 'dropIntoGroup', 'newAfter', 'duplicate', 'siteSoundSnapshot', 'setSiteSound'];
+        if (!allowed.includes(action)) throw new Error('Unknown tab action');
+        if (action === 'undo') return actions.undo(args[0], sender.tab?.id ?? null);
+        return actions[action](...args);
+    };
+    queue = queue.then(run, run);
+    queue.then(result => respond({ result }), error => respond({ error: error.message }));
+    return true;
 });
 
-// Function to capture and save
-async function captureTab(tabId) {
-  try {
-    // SILENT CATCH ADDED: If tab was instantly closed, ignore it
-    const tab = await chrome.tabs.get(tabId).catch(() => null);
-    if (!tab || !tab.active) return;
-
-    const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'jpeg', quality: 40 }).catch(() => null);
-    if (!dataUrl) return;
-
-    const storageKey = `screenshot_${tabId}`;
-    await chrome.storage.local.set({ [storageKey]: dataUrl });
-  } catch (e) {
-    // Ignore global capture errors
-  }
+function recordActivity(ids) {
+    if (actions.private) return;
+    const work = () => actions.returnActive(ids);
+    queue = queue.then(work, work);
+    queue.catch(() => {}); // A storage error must not interrupt ordinary tab use.
 }
-
-// --- WATCHDOG: Handles Snapshots AND Auto-Closing ---
-chrome.tabs.onActivated.addListener((activeInfo) => {
-  // 1. Snapshot logic
-  setTimeout(() => captureTab(activeInfo.tabId), 500);
-
-  // 2. Watchdog: Close Grid if we switch away
-  setTimeout(async () => {
-    try {
-      const tabs = await chrome.tabs.query({});
-      const gridUrl = chrome.runtime.getURL("grid.html");
-
-      // Find Grid Tabs
-      const gridTabs = tabs.filter(tab => tab.url && tab.url.startsWith(gridUrl));
-
-      for (const tab of gridTabs) {
-        if (tab.id !== activeInfo.tabId) {
-          // SILENT CATCH ADDED
-          chrome.tabs.remove(tab.id).catch(() => { });
-        }
-      }
-    } catch (error) {
-      // Ignore
-    }
-  }, 150);
+chrome.tabs.onActivated.addListener(info => {
+    recordActivity([info.tabId]);
+    const work = () => actions.rememberOpened(`tab:${info.tabId}`);
+    queue = queue.then(work, work); queue.catch(() => {});
 });
+chrome.tabs.onUpdated.addListener((id, change, tab) => { if (change.url && tab.active) recordActivity([id]); });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.active) {
-    captureTab(tabId);
-  }
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.tabgridPreferences) { personalization.previews.invalidate(); if (!actions.private) personalization.ready.then(() => personalization.previews.reconcile()).catch(() => {}); }
 });
-
-// --- CLEANUP: Storage & History ---
-chrome.tabs.onRemoved.addListener((tabId) => {
-  // 1. Clean Screenshot Storage
-  chrome.storage.local.remove(`screenshot_${tabId}`);
-
-  // 2. NEW: Clean History (Fixes Restore Tab issue)
-  const gridUrl = chrome.runtime.getURL("grid.html");
-  chrome.history.deleteUrl({ url: gridUrl });
+chrome.tabs.onActivated.addListener(info => { personalization.previews.invalidate(); if (!actions.private) setTimeout(() => personalization.ready.then(() => personalization.previews.capture(info.tabId)).catch(() => {}), 500); });
+chrome.tabs.onUpdated.addListener((id, change, tab) => {
+    if (!actions.private && !tab.incognito && change.url) personalization.previews.clear(id).catch(() => {});
+    if (!actions.private && change.status === 'complete' && tab.active) personalization.ready.then(() => personalization.previews.capture(id)).catch(() => {});
 });
+chrome.tabs.onRemoved.addListener(id => { if (!actions.private) personalization.previews.clear(id).catch(() => {}); });
+chrome.tabGroups.onRemoved.addListener(group => {
+    personalization.protectedGroups().catch(() => {});
+    chrome.storage.session.remove(`tabgridGroupView:${actions.private ? 'private' : 'regular'}:${group.id}`).catch(() => {});
+});
+chrome.windows.onRemoved.addListener(id => chrome.storage.session.remove(`tabgridView:${actions.private ? 'private' : 'regular'}:${id}`).catch(() => {}));

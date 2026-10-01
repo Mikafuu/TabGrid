@@ -1,0 +1,113 @@
+/* Soft UI inspired by adamgiebl/neumorphism's opposing light/shadow and
+   convex/pressed surfaces. Local CSS, with no generator or framework runtime. */
+html[data-visual-style=neumorphic] {
+    --material-radius: 22px;
+    --material-control-radius: 14px;
+    --neo-plane: color-mix(in srgb,var(--bg) 96%,var(--text));
+    --neo-light: color-mix(in srgb,var(--neo-plane) 45%,white);
+    --neo-shade: color-mix(in srgb,var(--neo-plane) 82%,var(--text));
+    --neo-edge: color-mix(in srgb,var(--neo-plane) 65%,var(--line));
+    --neo-convex: linear-gradient(145deg,rgb(255 255 255 / .12),transparent 48%,rgb(0 0 0 / .015));
+    --neo-raised: 5px 5px 12px var(--neo-shade),-5px -5px 12px var(--neo-light);
+    --neo-pressed: inset 3px 3px 7px var(--neo-shade),inset -3px -3px 7px var(--neo-light);
+    --neo-small: 2px 2px 5px var(--neo-shade),-2px -2px 5px var(--neo-light);
+    --material-shadow: var(--neo-raised);
+    --material-inset: var(--neo-pressed);
+    --material-sheen: var(--neo-convex);
+    background: var(--neo-plane);
+}
+html[data-color-mode=dark][data-visual-style=neumorphic] {
+    --neo-light: color-mix(in srgb,var(--neo-plane) 90%,white);
+    --neo-shade: color-mix(in srgb,var(--neo-plane) 68%,black);
+    --neo-convex: linear-gradient(145deg,rgb(255 255 255 / .035),transparent 48%,rgb(0 0 0 / .04));
+}
+html[data-visual-style=neumorphic] body { background: transparent; }
+html[data-visual-style=neumorphic] :is(h1,h2,h3) { font-weight: 600; }
+html[data-visual-style=neumorphic] button { border-radius: 14px; }
+html[data-visual-style=neumorphic] :is(.page-actions,.group-controls,.dialog-actions,.backup-actions) > button,
+html[data-visual-style=neumorphic] .settings-panels button,
+html[data-visual-style=neumorphic] #undo-toast button {
+    background-color: var(--neo-plane); background-image: var(--neo-convex);
+    border-color: var(--neo-edge); box-shadow: var(--neo-small);
+    transition: background-color 160ms ease,border-color 160ms ease,color 160ms ease,box-shadow 160ms ease;
+}
+html[data-visual-style=neumorphic] :is(.page-actions,.group-controls,.dialog-actions,.backup-actions) > button:active:not(:disabled),
+html[data-visual-style=neumorphic] .settings-panels button:active:not(:disabled) { box-shadow: var(--neo-pressed); }
+html[data-visual-style=neumorphic] :is(.page-actions,.dialog-actions) > .primary {
+    background-color: var(--accent); color: var(--on-accent); border-color: transparent;
+}
+html[data-visual-style=neumorphic] :is(.page-actions,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); }
+html[data-visual-style=neumorphic] :is(#page-menu-btn,#group-menu-btn,#group-done) { border-radius: 50%; }
+html[data-visual-style=neumorphic] .sources {
+    width: fit-content; max-width: 100%; padding: 5px; gap: 6px;
+    border: 1px solid var(--neo-edge); border-radius: 18px; background: var(--neo-plane); box-shadow: var(--neo-pressed);
+}
+html[data-visual-style=neumorphic] .sources button { padding: 10px 17px; border: 1px solid transparent; border-radius: 12px; color: var(--muted); }
+html[data-visual-style=neumorphic] .sources button:hover:not(:disabled) { background: var(--neo-plane); color: var(--text); box-shadow: var(--neo-small); }
+html[data-visual-style=neumorphic] .sources button[aria-current=page] {
+    border-color: var(--neo-edge); background: var(--neo-plane); color: var(--accent); box-shadow: var(--neo-pressed); font-weight: 650;
+}
+html[data-visual-style=neumorphic] :is(input[type=search],input[type=text]:not(.filter-picker input),input[type=number],textarea,.filter-picker,select) {
+    background-color: var(--neo-plane); border-color: var(--neo-edge); box-shadow: var(--neo-pressed);
+}
+html[data-visual-style=neumorphic] .filter-expand { border-radius: 0 14px 14px 0; }
+html[data-visual-style=neumorphic] :is(input,textarea)::placeholder { opacity: 1; }
+html[data-visual-style=neumorphic] :is(.live-filters,.toolbar,.font-sample) {
+    border: 1px solid var(--neo-edge); border-radius: 18px; background: var(--neo-plane); box-shadow: var(--neo-pressed);
+}
+html[data-visual-style=neumorphic] .live-filters > button { background-color: var(--neo-plane); box-shadow: var(--neo-small); border-color: var(--neo-edge); }
+html[data-visual-style=neumorphic] #size-slider {
+    appearance: none; height: 8px; margin: 17px 0 7px; border: 0; border-radius: 999px; cursor: pointer;
+    background: linear-gradient(to right,var(--accent) var(--size-progress,40%),var(--neo-plane) var(--size-progress,40%)); box-shadow: var(--neo-pressed);
+}
+html[data-visual-style=neumorphic] #size-slider::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; border: 3px solid var(--neo-plane); border-radius: 50%; background: var(--accent); box-shadow: var(--neo-small); }
+html[data-visual-style=neumorphic] #size-slider::-moz-range-thumb { width: 16px; height: 16px; border: 3px solid var(--neo-plane); border-radius: 50%; background: var(--accent); box-shadow: var(--neo-small); }
+html[data-visual-style=neumorphic] .card > .card-surface { border-color: var(--neo-edge); box-shadow: var(--neo-raised); }
+html[data-visual-style=neumorphic] .card:not(.group-card):not(.last-opened) { --frame: var(--neo-plane); }
+html[data-visual-style=neumorphic] .card.selected > .card-surface { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--surface),var(--neo-raised); }
+html[data-visual-style=neumorphic] .card.last-opened.selected > .card-surface { border-color: var(--last-opened-text); }
+html[data-visual-style=neumorphic] .card-preview { border-radius: 15px; background: var(--neo-plane); box-shadow: inset 2px 2px 5px var(--neo-shade),inset -2px -2px 5px var(--neo-light); }
+html[data-visual-style=neumorphic] .group-preview { background: transparent; box-shadow: none; gap: 6px; }
+html[data-visual-style=neumorphic] .group-tile { border-radius: 11px; }
+html[data-visual-style=neumorphic] :is(.preview-favicon,.tile-favicon) { border-radius: 8px; box-shadow: 2px 2px 4px color-mix(in srgb,var(--text) 12%,transparent); }
+html[data-visual-style=neumorphic] :is(.card-menu,.card-close) { border-radius: 50%; }
+html[data-visual-style=neumorphic] :is(dialog,#context-menu,#context-submenu,#page-menu,.filter-picker-list,.search-history,#undo-toast) {
+    border-color: var(--neo-edge); border-radius: 22px; background-color: var(--neo-plane); background-image: var(--neo-convex); box-shadow: var(--neo-raised); backdrop-filter: none;
+}
+html[data-visual-style=neumorphic] :is(#context-menu,#context-submenu,#page-menu) { padding: 9px; }
+html[data-visual-style=neumorphic] :is(#context-menu,#context-submenu,#page-menu) button { border-radius: 10px; }
+html[data-visual-style=neumorphic] :is(#context-menu,#context-submenu,#page-menu) button:not(.menu-colors button):is(:hover,:focus-visible) { background: var(--neo-plane); box-shadow: var(--neo-pressed); }
+html[data-visual-style=neumorphic] :is(.filter-picker-option,.search-history [role=option]) { border-radius: 10px; }
+html[data-visual-style=neumorphic] :is(.filter-picker-option,.search-history [role=option])[aria-selected=true] { background: var(--selected); box-shadow: var(--neo-pressed); }
+html[data-visual-style=neumorphic] .menu-colors button { background-image: none; box-shadow: none; }
+html[data-visual-style=neumorphic] dialog::backdrop { background: rgb(13 23 35 / .26); backdrop-filter: none; }
+/* No transformed/blurred group panel: its drawer remains fixed to the viewport. */
+html[data-visual-style=neumorphic] #group-dialog { background: var(--neo-plane); }
+html[data-visual-style=neumorphic] .group-header { background: var(--neo-convex); border-color: var(--neo-edge); }
+html[data-visual-style=neumorphic] .group-content { background: var(--neo-plane); }
+html[data-visual-style=neumorphic] #settings-dialog > .dialog-heading { border-color: var(--neo-edge); }
+html[data-visual-style=neumorphic] #settings-done { box-shadow: none; border-radius: 50%; background: transparent; }
+html[data-visual-style=neumorphic] .settings-tabs { background: var(--neo-plane); border: 0; box-shadow: inset -3px 0 7px var(--neo-shade); }
+html[data-visual-style=neumorphic] .settings-tabs button { border-radius: 12px; }
+html[data-visual-style=neumorphic] .settings-tabs button[aria-selected=true] { border: 1px solid var(--neo-edge); background: var(--neo-plane); color: var(--accent); box-shadow: var(--neo-pressed); }
+html[data-visual-style=neumorphic] .settings-tabs button:not([aria-selected=true]) { border: 1px solid transparent; }
+html[data-visual-style=neumorphic] :is(.theme-choice,.style-choice) { border-radius: 18px; border-color: var(--neo-edge); background: var(--neo-plane); box-shadow: var(--neo-small); }
+html[data-visual-style=neumorphic] input[type=checkbox]:not(.card-select) { border-color: var(--neo-edge); background: var(--neo-plane); box-shadow: var(--neo-pressed); }
+html[data-visual-style=neumorphic] input[type=checkbox]:not(.card-select):checked { background: var(--accent); }
+html[data-visual-style=neumorphic] input[type=checkbox]:not(.card-select)::before { box-shadow: 1px 1px 3px var(--neo-shade),-1px -1px 3px var(--neo-light); }
+html[data-visual-style=neumorphic] .drop-targets { background: var(--neo-plane); border-color: var(--neo-edge); box-shadow: var(--neo-small); }
+html[data-visual-style=neumorphic] .drawer-handle { background: var(--neo-convex); color: var(--accent); }
+html[data-visual-style=neumorphic] .drawer-resize { background: transparent; }
+html[data-visual-style=neumorphic] .drop-target { border-radius: 12px; box-shadow: var(--neo-small); }
+html[data-visual-style=neumorphic] :is(dialog,[popover],.search-history,#undo-toast) { transition: display 200ms allow-discrete,overlay 200ms allow-discrete; }
+html[data-visual-style=neumorphic] dialog::backdrop { transition: display 200ms allow-discrete,overlay 200ms allow-discrete,background-color 200ms ease; }
+html[data-visual-style=neumorphic] dialog:not([open])::backdrop { background-color: transparent; }
+html[data-visual-style=neumorphic] :is(dialog:not([open]),[popover]:not(:popover-open)),html[data-visual-style=neumorphic] dialog:not([open])::backdrop { pointer-events: none; }
+@starting-style { html[data-visual-style=neumorphic] dialog[open]::backdrop { background-color: transparent; } }
+.material-sample[data-material=neumorphic] .material-sample-tile { border-radius: 12px; background-image: linear-gradient(145deg,rgb(255 255 255 / .1),rgb(0 0 0 / .015)); }
+@media(max-width:650px) { html[data-visual-style=neumorphic] .sources { gap: 2px; } html[data-visual-style=neumorphic] .sources button { padding: 9px 12px; } }
+@media(forced-colors:active) {
+    html[data-visual-style=neumorphic] { background: Canvas; --neo-plane: Canvas; --neo-convex: none; --neo-raised: none; --neo-small: none; --neo-pressed: none; }
+    html[data-visual-style=neumorphic] :is(.card-surface,.sources,button,input,select,.filter-picker,dialog,[popover]) { border: 1px solid CanvasText; box-shadow: none; background-image: none; }
+    html[data-visual-style=neumorphic] .sources button[aria-current=page],html[data-visual-style=neumorphic] .settings-tabs button[aria-selected=true] { background: Highlight; color: HighlightText; }
+}
