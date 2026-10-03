@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/Preview image.png" alt="Preview Image" width="500">
+</p>
+
 # TabGrid
 
 A desktop Chrome extension that brings your tabs and tab groups into one visual grid. Search, organize, and personalize your workspace—all locally, with no account required.
