@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="images/Preview image.png" alt="Preview Image" width="500">
+</p>
+
 # TabGrid
 
 A desktop Chrome extension that brings your tabs and tab groups into one visual grid. Search, organize, and personalize your workspace—all locally, with no account required.
@@ -56,6 +60,7 @@ Thank you to the open-source projects behind TabGrid:
 - [SortableJS](https://github.com/SortableJS/Sortable) — drag-and-drop ordering (MIT).
 - [AutoAnimate by FormKit](https://github.com/formkit/auto-animate) — interface and card animations (MIT).
 - [Geist / Geist Mono](https://github.com/vercel/geist-font), [Outfit](https://github.com/Outfitio/Outfit-Fonts), [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans), and [Newsreader](https://github.com/productiontype/Newsreader) — bundled fonts (SIL Open Font License).
+- [taste-skill by Leonxlnx](https://github.com/Leonxlnx/taste-skill) - frontend layout and styling (MIT). 
 
 The material styles draw visual inspiration from [Flat UI](https://github.com/designmodo/Flat-UI), [liquidGL](https://github.com/naughtyduk/liquidGL), [neumorphism](https://github.com/adamgiebl/neumorphism), and [clay.css](https://github.com/codeAdrian/clay.css). These styles are implemented in TabGrid’s own CSS; those projects’ runtimes are not bundled.
 
