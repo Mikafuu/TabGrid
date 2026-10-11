@@ -54,7 +54,7 @@ main > section { margin-bottom: 28px; }
 .group-preview { font-size: 28px; color: var(--text); }
 .group-preview small { display: block; font-size: 14px; color: var(--muted); }
 .sortable-ghost { opacity: 0 !important; }
-.sortable-chosen { outline: 2px solid var(--accent); }
+.sortable-chosen > .card-surface { outline: 2px solid var(--accent); }
 .sortable-drag { opacity: .9; }
 .empty, .section-note { color: var(--muted); line-height: 1.6; }
 .empty { padding: 20px 0; }

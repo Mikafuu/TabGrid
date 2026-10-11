@@ -847,3 +847,57 @@ Chrome-hosted fixture checks (simulated Chrome APIs) verified:
 Evidence: [group menu](../output/group-menu-2026-09-28/group-menu.png).
 Syntax checks and the existing 63 tests pass. Native Chrome and physical touch
 behavior remain unverified; the accepted reorder implementation is unchanged.
+
+### 2026-10-08 — Idle visibility, Material icons, and window priority
+
+- Automated: 132 tests pass; syntax/module checks and whitespace checks pass. Added coverage for current-window-first ordering while retaining other windows' creation order, numbering, empty destinations, and per-window card order.
+- Chrome HTTP fixture (simulated Chrome APIs): Never hides Idle; enabling 7 days reveals it; changing back to Never while viewing Idle returns to Tabs. Show all windows renders This window first. Main-menu icons render locally; settings retain all seven accessible category names and ArrowDown navigation. Narrow settings rail has no horizontal overflow.
+- Compared computed main/group New tab foreground/background colors in Classic, Flat, Glassmorphism, Neumorphism, and Claymorphism: matching in all five.
+- Added SVG MIME support to the fixture server so bundled Material icons render in the fixture as they do when served as extension assets.
+- Native extension execution was not verified in this pass. Screenshot evidence: `output/ux-icons/menu.png` (ignored local artifact).
+
+### 2026-10-08 — Simplified drawer and motion controls
+
+- Automated: 132 tests pass; module/syntax and whitespace checks pass. Updated docking tests cover the midpoint boundary, clamping, legacy placement migration and invalid offsets. Motion tests cover speed scaling and reduced motion; existing interrupted-reorder tests remain passing.
+- Chrome HTTP fixture (simulated extension APIs): verified blank drawer handle, mouse dragging to the right half, keyboard expansion/collapse, 600 px viewport drawer width of 200 px with four wrapped rows and 212 px height, and no horizontal list overflow.
+- Verified Reduce animations hides speed choices; turning it off reveals them; all three choices save. Smooth sets glass UI timing to 352 ms. Title/action bars remain visible while main and group content scroll. Search shortcuts scroll each search field below its header. Main sources follow filters; group previews have no corner favicon. Group panels still open and close with normal focus behavior.
+- UI reveal/entry timing is covered by unit tests; exact transient animation frames and rapid manual pointer reorder were not recorded in this pass. Native Chrome extension APIs and physical touchscreen operation were not tested.
+- Local screenshot: `output/drawer-motion/settings.png` (ignored artifact).
+
+### 2026-10-09 — Context menus, settings search, and accordions
+
+- Automated: 136 tests pass; module/syntax and whitespace checks pass. New tests cover submenu delay/cancellation/immediate switching, opacity-only menu reveals, stale geometry suppression on category return, and settings search matching.
+- Chrome HTTP fixture with simulated extension APIs: page menu remains visible at a scrolled header; main-grid tab menu folds the header, while a menu inside the group panel leaves it visible. Menu computed transform is none. Full-width header background visually covers content behind it.
+- Recently closed retains filters; applying Pinned = Yes redirects to Tabs and shows the matching pinned tab. Window headings collapse/expand with Enter, keep keyboard focus, retain This window first, and have distinct tints.
+- Settings search finds labels and shortcuts, shows category names, and ArrowDown/Enter navigates to and focuses the matching control. At 600 px the dialog, sidebar, and panels have no horizontal overflow. No browser warnings/errors were recorded. Local screenshots: `output/menu-search/settings.png` and `output/menu-search/windows.png`.
+- Exact transient animation frames, rapid manual reorder, and native Chrome extension execution were not verified in this pass. Animation behavior is covered by focused unit tests; simulated fixture results are not native API verification.
+
+### 2026-10-10 — Header, drawer, and drag motion follow-up
+
+- Automated: 145 tests pass. Added coverage for visible animation anchors, queued-effect cancellation, measured accordion collapse/reversal, serialized optimistic docking, fast releases without move events, drawer proximity, group-entry fades, compatible feedback targets, and reusable feedback anchors. Module/syntax and whitespace checks pass.
+- Chrome HTTP fixture, verified in Classic: recorded actual browser keyframes for header folding at scrollY 713.5 (opacity 1→0 and upward translation), window collapse from 898.609 px to 0, and size-track progress 40%→60%. Group-to-group entry produced opacity-only card effects. The header has one continuous full-width border.
+- Native pointer gestures on the simulated page docked the drawer left, then right; right placement and offset survived page reload. A single target row measured 62 px including the frame, instead of the old 128 px minimum. Final Classic inspection measured two rows at 112 px high and 410 px wide in a 1230 px viewport (one third of the page).
+- Opt-in synthetic mouse sequences through the real Sortable handlers verified both tab/group reordering stays frozen near the drawer and resumes away from it. Grouping feedback reached scale .78; Ungroup was hidden for a single tab. Group ungrouping showed only Ungroup, transitioned the frame to transparent, and spread all four tiles by ±12 px with small opposing rotations. These are disposable fixture results, not native extension/tab API or physical drag-device acceptance.
+- No browser warnings/errors were observed. `tests/motion-probe.mjs` is loaded only by the fixture's `motionProbe` flag; it records actual effects and provides clearly named synthetic gesture controls. Evidence: `output/motion-refinements/effects.json` and `output/motion-refinements/classic.png` (ignored local artifacts).
+- Real Chrome extension execution and device-specific drag behavior remain pending. The existing stable-card reorder ownership is unchanged.
+
+### 2026-10-10 — Control and popup interaction polish
+
+- Automated: 149 tests pass; syntax/module and whitespace checks pass. New coverage includes host-timer receiver safety, duplicate mouse/pointer events and child boundaries, counterclockwise disclosure state, and cross-window new-group name/color preservation.
+- Classic HTTP fixture: submenu hover remains closed at 70 ms, opens after the delay, and switches to another submenu immediately. This reproduces and fixes the previous browser `Illegal invocation` timer error. Hover was exercised through opt-in synthetic mouse events, not a physical pointing device.
+- Recorded actual knob interpolation: progress 53.3502%, knob left 72.553 px in a 154 px range with an 18 px knob, matching the shared track value. Native Arrow keys continue to change size levels. Tint collapse recorded height 313.695 px to zero and opacity 1 to zero; the triangle rotates between zero and -180 degrees. Collapsed tint content is inert and omitted from accessibility navigation.
+- New-group dialog opens after a synthetic drop on New group and from selected tabs in the drawer. Cancel restores the unchanged ungrouped tab; submission creates the chosen name and green color in the simulated API. A native pointer click outside the action dialog dismisses it. These are fixture checks, not native Chrome tab API verification.
+- Final drag samples show no outer outline (`outline-style: none`); the 2 px inner outline follows the tab's .78 scale and becomes transparent with the group frame. Keyboard tint expansion and the Filters indicator both record a -180-degree rotation. Reduce animations hides speed choices. Final browser checks recorded no warnings/errors. Local evidence is in `output/interaction-polish/`, including the spacing screenshot `appearance.png`.
+
+### 2026-10-10 — Hover-only submenu revision
+
+- 148 automated tests pass, along with syntax/module and whitespace checks. Obsolete delay tests were replaced with immediate opening/closing and parent-to-popup hover-region coverage.
+- Classic browser fixture synthetic hover sequence confirms immediate opening, retention on entering the submenu, immediate closure on leaving both regions, immediate switching, and no click-only opening. No browser warnings/errors were recorded. Native physical-pointer movement was not tested.
+
+### 2026-10-10 — Submenu exit paint regression
+
+- Reproduced the remaining bug in Classic with Smooth speed: the native popover state closed immediately, but measured opacity stayed at 1 until the 288 ms discrete display transition ended. The earlier hover-only check tested logical closure, not visible fading.
+- After the fix, the Chrome HTTP fixture recorded opacity 0.58 at 50 ms, 0.30 at 97 ms, and 0.09 at 150 ms after leaving the combined hover region. No position animation is involved.
+- Synthetic browser hover checks passed for quick-pass cancellation, keeping the submenu open across the parent/popup boundary, immediate logical dismissal, delayed first entry and switching (167 ms observed for each 150 ms timer), click not reopening a submenu, and cancellation when the parent menu closes. No browser warnings/errors.
+- 151 automated tests pass; syntax/module and whitespace checks pass. Added regressions cover nested-observer opacity ownership, every-entry delay, duplicate compatibility events, leaving both hover regions, and pending-open cancellation.
+- Evidence: `output/submenu-hover/results.json` and `output/submenu-hover/verified.png`. Browser checks used Classic with simulated extension APIs and synthetic hover events; native extension execution and physical-pointer movement were not tested.

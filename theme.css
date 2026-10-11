@@ -65,8 +65,8 @@ h3 { font-size: 14px; font-weight: 550; letter-spacing: -.01em; }
 .filter-disclosure summary { list-style: none; display: flex; gap: 8px; align-items: center; width: fit-content; cursor: pointer; color: var(--muted); font-size: 12px; font-weight: 550; padding: 5px 0; }
 .filter-disclosure summary::-webkit-details-marker { display: none; }
 .filter-disclosure summary::before { content: ''; width: 12px; height: 10px; background: linear-gradient(currentColor, currentColor) center 0 / 12px 1px no-repeat, linear-gradient(currentColor, currentColor) center 4px / 8px 1px no-repeat, linear-gradient(currentColor, currentColor) center 8px / 4px 1px no-repeat; }
-.filter-disclosure summary::after { content: '⌄'; margin-left: 3px; }
-.filter-disclosure[open] summary::after { content: '⌃'; }
+
+
 .filter-disclosure summary:hover { color: var(--accent); }
 .filter-count { font-size: 11px; color: var(--accent); font-variant-numeric: tabular-nums; }
 .filter-count:empty { display: none; }
@@ -229,3 +229,26 @@ html.menu-open .card button:hover { background: transparent; border-color: trans
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; } }
 html.motion-off *, html.motion-off *::before, html.motion-off *::after { transition: none !important; }
+
+/* Bundled Material icons inherit each theme’s readable foreground color. */
+.ui-icon { display: inline-block; width: 18px; height: 18px; flex: 0 0 18px; background-color: currentColor; mask: var(--ui-icon) center / contain no-repeat; pointer-events: none; }
+.ui-icon[data-icon="filter_none"] { --ui-icon: url("assets/icons/material/filter_none.svg"); }
+.ui-icon[data-icon="refresh"] { --ui-icon: url("assets/icons/material/refresh.svg"); }
+.ui-icon[data-icon="open_in_new"] { --ui-icon: url("assets/icons/material/open_in_new.svg"); }
+.ui-icon[data-icon="visibility_off"] { --ui-icon: url("assets/icons/material/visibility_off.svg"); }
+.ui-icon[data-icon="tab"] { --ui-icon: url("assets/icons/material/tab.svg"); }
+.ui-icon[data-icon="select_all"] { --ui-icon: url("assets/icons/material/select_all.svg"); }
+.ui-icon[data-icon="close"] { --ui-icon: url("assets/icons/material/close.svg"); }
+.ui-icon[data-icon="settings"] { --ui-icon: url("assets/icons/material/settings.svg"); }
+.ui-icon[data-icon="tune"] { --ui-icon: url("assets/icons/material/tune.svg"); }
+.ui-icon[data-icon="palette"] { --ui-icon: url("assets/icons/material/palette.svg"); }
+.ui-icon[data-icon="search"] { --ui-icon: url("assets/icons/material/search.svg"); }
+.ui-icon[data-icon="image"] { --ui-icon: url("assets/icons/material/image.svg"); }
+.ui-icon[data-icon="keyboard"] { --ui-icon: url("assets/icons/material/keyboard.svg"); }
+.ui-icon[data-icon="save"] { --ui-icon: url("assets/icons/material/save.svg"); }
+#page-menu button, .settings-tabs button { display: flex; align-items: center; gap: 10px; }
+#page-menu .menu-switch { gap: 10px; }
+#all-windows-label { flex: 1; }
+.settings-tabs button > span:last-child { min-width: 0; }
+@media (max-width: 650px) { .settings-tabs button { flex-direction: column; align-items: flex-start; gap: 4px; } }
+@media (forced-colors: active) { .ui-icon { forced-color-adjust: none; } }

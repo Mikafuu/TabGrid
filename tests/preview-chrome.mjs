@@ -172,3 +172,5 @@ function sampleMaterial(){
 }
 new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n instanceof Element&&n.hasAttribute('data-motion-cue')))){cancelAnimationFrame(materialFrame);materialFrame=requestAnimationFrame(sampleMaterial);}}).observe(document.body,{childList:true,subtree:true});
 document.addEventListener('beforetoggle',e=>{if(e.newState!=='closed')return;const target=e.target;requestAnimationFrame(()=>{materialEvidence.closedPaint.push({target:target.id||target.className,display:getComputedStyle(target).display,open:target.tagName==='DIALOG'?target.open:target.matches(':popover-open')});materialEvidence.closedPaint=materialEvidence.closedPaint.slice(-30);sampleMaterial();});},true);
+
+if(new URL(location.href).searchParams.has('motionProbe')) import('./motion-probe.mjs');

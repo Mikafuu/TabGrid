@@ -52,13 +52,14 @@ For private browsing, enable **Allow in Incognito** in the extension’s Chrome 
 
 Thank you to the open-source projects behind TabGrid:
 
+- [Google Material Design Icons](https://github.com/google/material-design-icons) — bundled menu and settings icons ([Apache 2.0](assets/icons/material/LICENSE)).
 - [SortableJS](https://github.com/SortableJS/Sortable) — drag-and-drop ordering (MIT).
 - [AutoAnimate by FormKit](https://github.com/formkit/auto-animate) — interface and card animations (MIT).
 - [Geist / Geist Mono](https://github.com/vercel/geist-font), [Outfit](https://github.com/Outfitio/Outfit-Fonts), [Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans), and [Newsreader](https://github.com/productiontype/Newsreader) — bundled fonts (SIL Open Font License).
 
 The material styles draw visual inspiration from [Flat UI](https://github.com/designmodo/Flat-UI), [liquidGL](https://github.com/naughtyduk/liquidGL), [neumorphism](https://github.com/adamgiebl/neumorphism), and [clay.css](https://github.com/codeAdrian/clay.css). These styles are implemented in TabGrid’s own CSS; those projects’ runtimes are not bundled.
 
-Third-party license notices are included with the libraries and in [assets/fonts](assets/fonts/README.md).
+Third-party license notices are included with the libraries, [bundled fonts](assets/fonts/README.md), and [Material Design icons](assets/icons/material/README.md).
 
 ## Development
 

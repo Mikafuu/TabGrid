@@ -15,8 +15,8 @@ html[data-visual-style=flat] :is(.page-actions,.group-controls,.dialog-actions,.
 html[data-visual-style=flat] .settings-panels button { background: var(--flat-control); border-color: transparent; }
 html[data-visual-style=flat] :is(.page-actions,.group-controls,.dialog-actions,.backup-actions) > button:hover:not(:disabled),
 html[data-visual-style=flat] .settings-panels button:hover:not(:disabled) { background: var(--flat-hover); }
-html[data-visual-style=flat] :is(.page-actions,.dialog-actions) > .primary { background: var(--accent); color: var(--on-accent); }
-html[data-visual-style=flat] :is(.page-actions,.dialog-actions) > .primary:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); filter: brightness(.93); }
+html[data-visual-style=flat] :is(.page-actions,.group-controls,.dialog-actions) > .primary { background: var(--accent); color: var(--on-accent); }
+html[data-visual-style=flat] :is(.page-actions,.group-controls,.dialog-actions) > .primary:hover:not(:disabled) { background: var(--accent); color: var(--on-accent); filter: brightness(.93); }
 html[data-visual-style=flat] #page-menu-btn { background: var(--flat-control); }
 html[data-visual-style=flat] .sources { width: fit-content; max-width: 100%; padding: 4px; gap: 4px; border: 0; border-radius: 6px; background: var(--flat-control); }
 html[data-visual-style=flat] .sources button { padding: 10px 18px; border: 0; border-radius: 4px; color: var(--text); }
@@ -74,8 +74,8 @@ html[data-visual-style=flat] .drop-target { border: 0; border-radius: 4px; backg
 html[data-visual-style=flat] .drop-target.group-drop-target { background: color-mix(in srgb,var(--group-color) var(--group-tint,36%),var(--surface)); }
 /* Preserve the native lifetime of closing top-layer surfaces, not their focus.
    Auto-animate owns their opacity/translation; these are discrete paint toggles. */
-html[data-visual-style=flat] :is(dialog,[popover],.search-history,#undo-toast) { transition: display 180ms allow-discrete, overlay 180ms allow-discrete; }
-html[data-visual-style=flat] dialog::backdrop { backdrop-filter: none; transition: display 180ms allow-discrete,overlay 180ms allow-discrete,background-color 180ms ease; }
+html[data-visual-style=flat] :is(dialog,[popover],.search-history,#undo-toast) { transition: display var(--motion-duration,180ms) allow-discrete, overlay var(--motion-duration,180ms) allow-discrete; }
+html[data-visual-style=flat] dialog::backdrop { backdrop-filter: none; transition: display var(--motion-duration,180ms) allow-discrete,overlay var(--motion-duration,180ms) allow-discrete,background-color var(--motion-duration,180ms) ease; }
 html[data-visual-style=flat] dialog:not([open])::backdrop { background-color: transparent; }
 html[data-visual-style=flat] :is(dialog:not([open]),[popover]:not(:popover-open)),
 html[data-visual-style=flat] dialog:not([open])::backdrop { pointer-events: none; }

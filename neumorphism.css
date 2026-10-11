@@ -29,14 +29,14 @@ html[data-visual-style=neumorphic] .settings-panels button,
 html[data-visual-style=neumorphic] #undo-toast button {
     background-color: var(--neo-plane); background-image: var(--neo-convex);
     border-color: var(--neo-edge); box-shadow: var(--neo-small);
-    transition: background-color 160ms ease,border-color 160ms ease,color 160ms ease,box-shadow 160ms ease;
+    transition: background-color var(--motion-duration,160ms) ease,border-color var(--motion-duration,160ms) ease,color var(--motion-duration,160ms) ease,box-shadow var(--motion-duration,160ms) ease;
 }
 html[data-visual-style=neumorphic] :is(.page-actions,.group-controls,.dialog-actions,.backup-actions) > button:active:not(:disabled),
 html[data-visual-style=neumorphic] .settings-panels button:active:not(:disabled) { box-shadow: var(--neo-pressed); }
-html[data-visual-style=neumorphic] :is(.page-actions,.dialog-actions) > .primary {
+html[data-visual-style=neumorphic] :is(.page-actions,.group-controls,.dialog-actions) > .primary {
     background-color: var(--accent); color: var(--on-accent); border-color: transparent;
 }
-html[data-visual-style=neumorphic] :is(.page-actions,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); }
+html[data-visual-style=neumorphic] :is(.page-actions,.group-controls,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); }
 html[data-visual-style=neumorphic] :is(#page-menu-btn,#group-menu-btn,#group-done) { border-radius: 50%; }
 html[data-visual-style=neumorphic] .sources {
     width: fit-content; max-width: 100%; padding: 5px; gap: 6px;
@@ -99,8 +99,8 @@ html[data-visual-style=neumorphic] .drop-targets { background: var(--neo-plane);
 html[data-visual-style=neumorphic] .drawer-handle { background: var(--neo-convex); color: var(--accent); }
 html[data-visual-style=neumorphic] .drawer-resize { background: transparent; }
 html[data-visual-style=neumorphic] .drop-target { border-radius: 12px; box-shadow: var(--neo-small); }
-html[data-visual-style=neumorphic] :is(dialog,[popover],.search-history,#undo-toast) { transition: display 200ms allow-discrete,overlay 200ms allow-discrete; }
-html[data-visual-style=neumorphic] dialog::backdrop { transition: display 200ms allow-discrete,overlay 200ms allow-discrete,background-color 200ms ease; }
+html[data-visual-style=neumorphic] :is(dialog,[popover],.search-history,#undo-toast) { transition: display var(--motion-duration,200ms) allow-discrete,overlay var(--motion-duration,200ms) allow-discrete; }
+html[data-visual-style=neumorphic] dialog::backdrop { transition: display var(--motion-duration,200ms) allow-discrete,overlay var(--motion-duration,200ms) allow-discrete,background-color var(--motion-duration,200ms) ease; }
 html[data-visual-style=neumorphic] dialog:not([open])::backdrop { background-color: transparent; }
 html[data-visual-style=neumorphic] :is(dialog:not([open]),[popover]:not(:popover-open)),html[data-visual-style=neumorphic] dialog:not([open])::backdrop { pointer-events: none; }
 @starting-style { html[data-visual-style=neumorphic] dialog[open]::backdrop { background-color: transparent; } }

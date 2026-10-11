@@ -41,7 +41,7 @@ html:is([data-finish=glass],[data-finish=glass-bezel],[data-finish=ethereal]) :i
 .theme-gallery { border: 0; padding: 0; min-width: 0; margin: 24px 0; }
 .theme-gallery > legend { font-size: 14px; margin-bottom: 10px; }
 .theme-family { margin-bottom: 16px; }
-.theme-family > summary { cursor: pointer; padding: 8px 0; font-size: 12px; color: var(--muted); }
+.theme-family > .tint-toggle { display: flex; align-items: center; gap: 8px; padding: 8px 0; margin-bottom: 4px; font-size: 12px; color: var(--muted); border: 0; background: transparent; box-shadow: none; width: 100%; text-align: left; }
 .theme-options { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
 .theme-options .theme-choice { position: relative; display: grid; grid-template-columns: 1fr 16px; gap: 8px; margin: 0; padding: 14px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; min-width: 0; background: var(--surface); }
 .theme-choice:last-child:nth-child(odd) { grid-column: 1 / -1; }

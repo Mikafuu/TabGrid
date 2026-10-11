@@ -27,15 +27,15 @@ html[data-visual-style=clay] :is(.page-actions,.group-controls,.dialog-actions,.
 html[data-visual-style=clay] .settings-panels button,
 html[data-visual-style=clay] #undo-toast button {
     background-color: var(--surface); border-color: var(--clay-edge); box-shadow: var(--clay-control);
-    transition: background-color 180ms ease,border-color 180ms ease,color 180ms ease,box-shadow 180ms ease;
+    transition: background-color var(--motion-duration,180ms) ease,border-color var(--motion-duration,180ms) ease,color var(--motion-duration,180ms) ease,box-shadow var(--motion-duration,180ms) ease;
 }
 html[data-visual-style=clay] :is(.page-actions,.group-controls,.dialog-actions,.backup-actions) > button:active:not(:disabled),
 html[data-visual-style=clay] .settings-panels button:active:not(:disabled) { box-shadow: var(--clay-pressed); }
-html[data-visual-style=clay] :is(.page-actions,.dialog-actions) > .primary {
+html[data-visual-style=clay] :is(.page-actions,.group-controls,.dialog-actions) > .primary {
     background-color: var(--accent); color: var(--on-accent); border-color: transparent;
     --clay-light: rgb(255 255 255 / .12);
 }
-html[data-visual-style=clay] :is(.page-actions,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); }
+html[data-visual-style=clay] :is(.page-actions,.group-controls,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); }
 html[data-visual-style=clay] :is(#page-menu-btn,#group-menu-btn,#group-done) { border-radius: 50%; }
 html[data-visual-style=clay] .sources { border: 0; padding: 5px 0; gap: 12px; background: transparent; }
 html[data-visual-style=clay] .sources button {
@@ -102,8 +102,8 @@ html[data-visual-style=clay] .drop-targets { background: var(--surface); border-
 html[data-visual-style=clay] .drawer-handle { color: var(--accent); }
 html[data-visual-style=clay] .drawer-resize { background: transparent; }
 html[data-visual-style=clay] .drop-target { border-radius: 16px; box-shadow: var(--clay-control); }
-html[data-visual-style=clay] :is(dialog,[popover],.search-history,#undo-toast) { transition: display 240ms allow-discrete,overlay 240ms allow-discrete; }
-html[data-visual-style=clay] dialog::backdrop { transition: display 240ms allow-discrete,overlay 240ms allow-discrete,background-color 240ms ease; }
+html[data-visual-style=clay] :is(dialog,[popover],.search-history,#undo-toast) { transition: display var(--motion-duration,240ms) allow-discrete,overlay var(--motion-duration,240ms) allow-discrete; }
+html[data-visual-style=clay] dialog::backdrop { transition: display var(--motion-duration,240ms) allow-discrete,overlay var(--motion-duration,240ms) allow-discrete,background-color var(--motion-duration,240ms) ease; }
 html[data-visual-style=clay] dialog:not([open])::backdrop { background-color: transparent; }
 html[data-visual-style=clay] :is(dialog:not([open]),[popover]:not(:popover-open)),html[data-visual-style=clay] dialog:not([open])::backdrop { pointer-events: none; }
 @starting-style { html[data-visual-style=clay] dialog[open]::backdrop { background-color: transparent; } }

@@ -1,34 +1,107 @@
-/* Flush-edge drawer: its geometry is independent of the tab grid. */
-.drop-targets { --drawer-length: 128px; display: flex; align-items: center; width: fit-content; max-width: 95vw; border-radius: 0 18px 18px 0; overflow: hidden; }
-.drop-targets.expanded { width: fit-content; }
-.drop-targets .drawer-grip { display: flex; flex: 0 0 auto; flex-direction: column; width: 28px; height: min(var(--drawer-length), 85vh); }
-.drop-targets .drawer-handle { width: 100%; height: auto; min-height: 24px; flex: 1; font-size: 18px; border-radius: 0; }
-.drop-targets .drawer-resize { border: 0; border-radius: 0; padding: 0; width: 28px; min-width: 28px; height: 20px; min-height: 20px; background: transparent; color: var(--muted); font-size: 13px; touch-action: none; cursor: ns-resize; }
-.drop-targets .drawer-resize:focus-visible, .drop-targets .drawer-handle:focus-visible { outline-offset: -3px; }
-.drop-targets .drawer-resize:hover { background: var(--selected); }
-.drop-targets.expanded .drawer-resize, .drop-targets.drawer-moving .drawer-resize { display: none; }
-.drop-targets[data-edge=right] { flex-direction: row-reverse; border-radius: 18px 0 0 18px; }
-.drop-targets[data-edge=top], .drop-targets[data-edge=bottom] { border-radius: 0 0 18px 18px; }
-.drop-targets[data-edge=bottom] { flex-direction: row; border-radius: 18px 18px 0 0; }
-.drop-targets[data-edge=top] .drawer-grip, .drop-targets[data-edge=bottom] .drawer-grip { flex-direction: row; width: min(var(--drawer-length),85vw); height: 28px; }
-.drop-targets[data-edge=top] .drawer-resize, .drop-targets[data-edge=bottom] .drawer-resize { height: 28px; width: 20px; min-width: 20px; cursor: ew-resize; }
-.drop-targets[data-edge=top] .drawer-handle, .drop-targets[data-edge=bottom] .drawer-handle { width: auto; height: 28px; }
-.drop-targets .drawer-list { display: flex; flex-direction: row; gap: 6px; padding: 6px; max-width: min(560px,70vw); max-height: none; overflow: auto; overscroll-behavior: contain; }
-.drop-targets .drop-target { min-width: 100px; max-width: 180px; }
-.drop-targets .drop-target > button { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.drop-targets.drawer-moving { border-radius: 999px; }
-.drop-targets.drawer-moving .drawer-grip { width: 36px; height: 128px; }
-.drop-targets.drawer-moving[data-edge=top] .drawer-grip, .drop-targets.drawer-moving[data-edge=bottom] .drawer-grip { width: 128px; height: 36px; }
+/* Fixed collapsed handle; expanded height follows its wrapped destination rows. */
+.drop-targets { display: flex; align-items: stretch; width: 28px; height: min(128px,85vh); max-width: 33.333vw; padding: 0; overflow: hidden; }
+.drop-targets.expanded { width: min(420px,33.333vw); height: auto; max-height: min(420px,80vh); align-items: stretch; }
+.drop-targets.expanded .drawer-grip { height: auto; align-self: stretch; }
+.drop-targets .drawer-grip { display: flex; flex: 0 0 28px; width: 28px; height: 100%; }
+.drop-targets .drawer-handle { width: 100%; height: 100%; min-width: 0; padding: 0; border: 0; border-radius: inherit; background: transparent; touch-action: none; cursor: grab; }
+.drop-targets .drawer-handle:active { cursor: grabbing; }
+.drop-targets .drawer-handle:focus-visible { outline-offset: -4px; }
+.drop-targets[data-edge=right] { flex-direction: row-reverse; }
+.drop-targets .drawer-list { display: flex; flex: 1; flex-direction: row; flex-wrap: wrap; align-content: start; gap: 6px; padding: 8px; min-width: 0; max-width: none; max-height: min(418px,78vh); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; }
+.drop-targets .drop-target { flex: 1 1 100px; min-width: 0; max-width: 100%; }
+.drop-targets .drop-target > button { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dragging-group .drop-targets .drop-target:not([data-destination=ungroup]) { display: none; }
-.drop-targets.expanded[data-edge=left] .drawer-grip, .drop-targets.expanded[data-edge=right] .drawer-grip { height: 48px; }
-.drop-targets .drawer-list { min-width: 0; flex: 1 1 auto; }
-.drop-targets.expanded[data-edge=top] .drawer-grip, .drop-targets.expanded[data-edge=bottom] .drawer-grip { width: min(var(--drawer-length),30vw); }
-/* Material finishes change the sheen, while docking owns the edge geometry. */
 html[data-visual-style] .drop-targets:is(#root-drop-targets,#group-drop-targets)[data-edge=left] { border-radius: 0 18px 18px 0; }
 html[data-visual-style] .drop-targets:is(#root-drop-targets,#group-drop-targets)[data-edge=right] { border-radius: 18px 0 0 18px; }
-html[data-visual-style] .drop-targets:is(#root-drop-targets,#group-drop-targets)[data-edge=top] { border-radius: 0 0 18px 18px; }
-html[data-visual-style] .drop-targets:is(#root-drop-targets,#group-drop-targets)[data-edge=bottom] { border-radius: 18px 18px 0 0; }
-html[data-visual-style] .drop-targets:is(#root-drop-targets,#group-drop-targets).drawer-moving[data-edge] { border-radius: 999px; }
-/* A blurred ancestor would make its fixed drawer use the dialog's coordinate space.
-   Keep glass on the drawer and backdrop; the group panel retains its tint/sheen. */
+html[data-visual-style] .drop-targets:is(#root-drop-targets,#group-drop-targets).drawer-moving { border-radius: 999px; }
+/* Fixed drawers must remain in viewport coordinates. */
 html[data-visual-style] #group-dialog { backdrop-filter: none; }
+
+/* Title/actions remain fixed; search, filters, and categories scroll normally. */
+.page-header { position: sticky; top: 0; z-index: 12; background: transparent; padding: 0; border: 0; }
+.header-surface { position: relative; padding-block: 16px; background: var(--bg); }
+.page-header .heading-row { margin: 0; }
+.page-controls { padding-block: 8px 24px; }
+.page-controls .sources { margin-top: 20px; margin-bottom: 0; }
+.group-header { padding-bottom: 16px; }
+.group-header .dialog-heading { margin-bottom: 0; }
+.group-search-controls { padding-bottom: 24px; }
+.group-search-controls > .search-field { color: var(--muted); font-size: 12px; font-weight: 500; }
+#search-input { scroll-margin-top: 120px; }
+#group-search { scroll-margin-top: 20px; }
+.animation-speed { border: 0; padding: 14px 0 22px; margin: 18px 0 0; min-width: 0; }
+.animation-speed legend { color: var(--muted); font-size: 12px; }
+.speed-options { display: flex; flex-wrap: wrap; gap: 10px; }
+.speed-options label { position: relative; flex: 1 1 100px; align-items: center; gap: 4px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
+.speed-options label:has(:checked) { border-color: var(--accent); background: var(--selected); }
+.speed-options label:has(:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+.speed-options input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.speed-symbol { font-size: 24px; line-height: 1; color: var(--accent); }
+html[data-visual-style] :is(dialog,[popover],.search-history,#undo-toast) { transition-duration: var(--motion-duration,180ms); }
+html.motion-off *, html.motion-off *::before, html.motion-off *::after { transition-duration: 0s !important; animation-duration: 0s !important; scroll-behavior: auto !important; }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0s !important; animation-duration: 0s !important; scroll-behavior: auto !important; } }
+
+/* Lock only the root scroll container so sticky headers keep their coordinates. */
+html.modal-open body { overflow: visible; }
+.header-surface::before { content: ''; position: absolute; inset-block: 0; left: 50%; width: 100vw; transform: translateX(-50%); background: var(--bg); z-index: -1; }
+.page-header.header-folded .header-surface { transform: translateY(-110%); opacity: 0; pointer-events: none; }
+html[data-visual-style] :is(#context-menu,#context-submenu,#page-menu) { transform: none !important; transition: display var(--motion-duration,180ms) allow-discrete, overlay var(--motion-duration,180ms) allow-discrete; }
+.window-section > h3 { margin: 0 0 16px; }
+html[data-visual-style] .window-toggle { border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; padding: 16px 20px; border-color: color-mix(in srgb,var(--window-color) 50%,var(--line)); background: color-mix(in srgb,var(--window-color) 25%,var(--surface)); color: var(--text); font-size: 15px; }
+.window-toggle::after { content: ''; flex: 0 0 8px; width: 8px; height: 8px; border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); }
+.window-toggle[aria-expanded=true]::after { transform: rotate(225deg); }
+html[data-visual-style] .window-toggle:hover { background: color-mix(in srgb,var(--window-color) 35%,var(--surface)); }
+.settings-sidebar { width: 220px; flex: 0 0 220px; min-height: 0; overflow-y: auto; background: var(--bg); border-right: 1px solid var(--line); }
+.settings-sidebar .settings-tabs { width: 100%; border: 0; overflow: visible; padding-top: 6px; }
+.settings-search { padding: 16px 12px 8px; gap: 8px; font-size: 12px; color: var(--muted); }
+.settings-search input { width: 100%; min-width: 0; }
+.settings-search-results { margin: 0 10px 12px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); max-height: 45vh; overflow: auto; }
+.settings-search-results button { width: 100%; display: flex; flex-direction: column; gap: 4px; padding: 10px; border: 0; background: transparent; text-align: left; }
+.settings-search-results small { color: var(--muted); font-size: 11px; }
+.settings-search-results p { padding: 8px; color: var(--muted); }
+.settings-search-hit { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+@media(max-width:650px){.settings-sidebar{width:135px;flex-basis:135px;}.settings-search{padding-inline:8px;}.settings-search input{padding-inline:8px;}.settings-search-results{margin-inline:5px;}}
+
+/* Geometry is owned by the drawer controller, never CSS transitions. */
+html[data-visual-style] .drop-targets { transition: none; }
+.dragging:not(.dragging-group) .drop-target[data-destination=ungroup] { display: none; }
+.window-content { overflow: clip; }
+.window-content[data-collapsed] { height: 0; opacity: 0; pointer-events: none; }
+
+/* Drop intent is shown on the pointer-following copy, not on a grid hit box. */
+html[data-visual-style] .sortable-fallback[data-drop-feedback=group] > .card-surface { transform: scale(.78); opacity: .8; }
+html[data-visual-style] .sortable-fallback[data-drop-feedback=ungroup] > .card-surface { background: transparent; border-color: transparent; outline-color: transparent; box-shadow: none; overflow: visible; }
+.sortable-fallback[data-drop-feedback=ungroup] > .card-surface::after { opacity: 0; }
+.sortable-fallback[data-drop-feedback=ungroup] :is(.card-info,.card-meta) { opacity: 0; }
+.sortable-fallback[data-drop-feedback=ungroup] :is(.card-open,.group-preview) { overflow: visible; background: transparent; }
+.sortable-fallback[data-drop-feedback=ungroup] .group-tile:nth-child(1) { transform: translate(-12px,-12px) rotate(-4deg); }
+.sortable-fallback[data-drop-feedback=ungroup] .group-tile:nth-child(2) { transform: translate(12px,-12px) rotate(4deg); }
+.sortable-fallback[data-drop-feedback=ungroup] .group-tile:nth-child(3) { transform: translate(-12px,12px) rotate(4deg); }
+.sortable-fallback[data-drop-feedback=ungroup] .group-tile:nth-child(4) { transform: translate(12px,12px) rotate(-4deg); }
+
+.header-surface::after { content: ''; position: absolute; bottom: 0; left: 50%; width: 100vw; transform: translateX(-50%); border-bottom: 1px solid var(--line); pointer-events: none; }
+@property --size-progress { syntax: '<percentage>'; inherits: true; initial-value: 40%; }
+#size-slider { appearance: none; height: 8px; margin-block: 17px 9px; border-radius: 4px; background: linear-gradient(to right,var(--accent) var(--size-progress),var(--line) var(--size-progress)); }
+#size-slider::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); border: 0; }
+/* Avoid a CSS transition masking the end values sampled by auto-animate. */
+html[data-visual-style] .sortable-fallback { outline: none !important; }
+html[data-visual-style] .sortable-fallback :is(.card-surface,.card-info,.card-meta,.group-tile) { transition: none !important; }
+
+/* Keep native range semantics and hit testing; the visible knob shares the track value. */
+.size-range { position: relative; display: block; width: 154px; --size-progress: 40%; }
+html[data-visual-style] #size-slider { width: 100%; }
+html[data-visual-style] #size-slider::-webkit-slider-thumb { opacity: 0; }
+html[data-visual-style] #size-slider::-moz-range-thumb { opacity: 0; }
+.size-knob { position: absolute; pointer-events: none; width: 18px; height: 18px; top: 12px; left: var(--size-progress); transform: translateX(calc(-1 * var(--size-progress))); border-radius: 50%; background: var(--accent); }
+html[data-visual-style=flat] .size-knob { border: 3px solid var(--accent); background: var(--surface); }
+html[data-visual-style=neumorphic] .size-knob { border: 3px solid var(--neo-plane); box-shadow: var(--neo-small); }
+html[data-visual-style=clay] .size-knob { border: 3px solid var(--surface); box-shadow: var(--clay-control); }
+@media (max-width: 900px) { .size-range { width: 128px; } }
+@media (max-width: 650px) { .size-range { width: 100%; } }
+
+.disclosure-chevron { display: inline-block; width: 10px; height: 6px; flex: 0 0 10px; background: currentColor; clip-path: polygon(0 0,100% 0,50% 100%); transform: rotate(0deg); }
+[aria-expanded=true] > .disclosure-chevron { transform: rotate(-180deg); }
+.tint-toggle .disclosure-chevron { margin-left: 3px; }
+.tint-content { overflow: clip; }
+.tint-content .theme-options { padding: 3px; }
+.tint-content[data-collapsed] { height: 0; opacity: 0; pointer-events: none; }

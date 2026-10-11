@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { windowLabel, relativeTabIds, siteOrigins, anchoredMenuLayout } from '../lib/tab-menu.mjs';
+import { windowLabel, relativeTabIds, siteOrigins, anchoredMenuLayout, bindSubmenuHover } from '../lib/tab-menu.mjs';
 import { fixture } from './chrome-mock.mjs';
 
 test('window labels use the first native tab and the remaining count', () => {
@@ -70,4 +70,49 @@ test('tall menus scroll without overlapping their opener, including near viewpor
         assert.ok(m.top>=rect.bottom+4 || m.top+m.height<=rect.top-4);
         assert.ok(m.left>=8 && m.left+320<=1192);
     }
+});
+
+function hoverFixture(options={}) {
+    const events={},child={},popup={},jobs=new Map();let next=0,opened=0,closed=0,active=true;
+    const trigger={disabled:false,contains:value=>value===child,addEventListener:(type,fn)=>events[type]=fn};
+    const hover=bindSubmenuHover(trigger,{
+        active:()=>active,open:()=>opened++,close:()=>closed++,contains:node=>node===child||node===popup,
+        schedule:(fn,ms)=>{const id=++next;jobs.set(id,{fn,ms});return id;},cancel:id=>jobs.delete(id),...options
+    });
+    return {events,child,popup,trigger,hover,jobs,opened:()=>opened,closed:()=>closed,deactivate:()=>active=false,
+        flush:()=>{const pending=[...jobs.values()];jobs.clear();for(const job of pending)job.fn();}};
+}
+
+test('every submenu entry waits 150ms, including reentry, without duplicate compatibility timers',()=>{
+    const f=hoverFixture();
+    f.events.pointerover({relatedTarget:null});f.events.mouseover({relatedTarget:null});
+    assert.equal(f.opened(),0);assert.equal(f.jobs.size,1);assert.equal([...f.jobs.values()][0].ms,150);
+    f.flush();assert.equal(f.opened(),1);
+    f.events.pointerout({relatedTarget:null});assert.equal(f.closed(),1);assert.equal(f.jobs.size,0);
+    f.events.mouseout({relatedTarget:null});assert.equal(f.closed(),1);
+    f.events.mouseover({relatedTarget:null});assert.equal(f.opened(),1);f.flush();assert.equal(f.opened(),2);
+    assert.equal(f.events.click,undefined);
+});
+
+test('submenu stays open over parent or popup and closes synchronously when leaving both',()=>{
+    const f=hoverFixture();f.events.mouseover({relatedTarget:null});f.flush();
+    f.events.mouseout({relatedTarget:f.popup});f.hover.leave({relatedTarget:f.child});
+    assert.equal(f.closed(),0);assert.equal(f.jobs.size,0);
+    f.events.mouseover({relatedTarget:f.popup});assert.equal(f.opened(),1);
+    f.hover.leave({relatedTarget:null});assert.equal(f.closed(),1);assert.equal(f.jobs.size,0);
+});
+
+test('quick pointer passes and menu closure cancel pending openings',()=>{
+    for(const stop of [f=>f.events.mouseout({relatedTarget:null}),f=>f.hover.reset(),f=>f.deactivate()]){
+        const f=hoverFixture();f.events.mouseover({relatedTarget:null});stop(f);f.flush();assert.equal(f.opened(),0);
+    }
+    const f=hoverFixture();f.trigger.disabled=true;f.events.mouseover({relatedTarget:null});assert.equal(f.jobs.size,0);
+});
+
+test('switching to another submenu still waits for its full hover delay',()=>{
+    const first=hoverFixture(),second=hoverFixture();
+    first.events.mouseover({relatedTarget:null});first.flush();assert.equal(first.opened(),1);
+    first.events.mouseout({relatedTarget:second.trigger});second.events.mouseover({relatedTarget:first.trigger});
+    assert.equal(first.closed(),1);assert.equal(second.opened(),0);assert.equal(second.jobs.size,1);
+    second.flush();assert.equal(second.opened(),1);
 });

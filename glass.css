@@ -31,10 +31,10 @@ html[data-visual-style=glass] :is(.page-actions,.group-controls,.dialog-actions,
 html[data-visual-style=glass] .settings-panels button {
     background-color: var(--glass-film); border-color: var(--glass-edge); box-shadow: var(--material-shadow); background-image: var(--glass-sheen);
 }
-html[data-visual-style=glass] :is(.page-actions,.dialog-actions) > .primary {
+html[data-visual-style=glass] :is(.page-actions,.group-controls,.dialog-actions) > .primary {
     background-color: var(--accent); color: var(--on-accent); border-color: transparent;
 }
-html[data-visual-style=glass] :is(.page-actions,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); filter: brightness(.96); }
+html[data-visual-style=glass] :is(.page-actions,.group-controls,.dialog-actions) > .primary:hover:not(:disabled) { background-color: var(--accent); color: var(--on-accent); filter: brightness(.96); }
 html[data-visual-style=glass] #page-menu-btn { background-color: var(--glass-film); }
 html[data-visual-style=glass] .sources {
     width: fit-content; max-width: 100%; gap: 4px; padding: 4px; border: 1px solid var(--glass-edge);
@@ -64,7 +64,7 @@ html[data-visual-style=glass] .card:not(.group-card):not(.last-opened) > .card-s
 html[data-visual-style=glass] .card-surface::after {
     content: ''; position: absolute; inset: 2px; border-radius: 19px; pointer-events: none;
     border: 1px solid color-mix(in srgb,var(--glass-light) 50%,transparent);
-    box-shadow: inset 0 2px 3px -2px var(--glass-light); opacity: .6; transition: opacity 220ms ease;
+    box-shadow: inset 0 2px 3px -2px var(--glass-light); opacity: .6; transition: opacity var(--motion-duration,220ms) ease;
 }
 html[data-visual-style=glass]:not(.menu-open) body:not(.dragging) .card:hover > .card-surface::after,
 html[data-visual-style=glass] .card.menu-active > .card-surface::after { opacity: 1; }
@@ -105,8 +105,8 @@ html[data-visual-style=glass] .drop-targets { background-color: var(--glass-pane
 html[data-visual-style=glass] .drawer-handle { background: var(--glass-sheen); color: var(--accent); box-shadow: inset 0 1px 0 var(--glass-light); }
 html[data-visual-style=glass] .drop-target { border-radius: 14px; }
 html[data-visual-style=glass] .drop-target > button { border-radius: 14px; }
-html[data-visual-style=glass] :is(dialog,[popover],.search-history,#undo-toast) { transition: display 220ms allow-discrete,overlay 220ms allow-discrete; }
-html[data-visual-style=glass] dialog::backdrop { transition: display 220ms allow-discrete,overlay 220ms allow-discrete,background-color 220ms ease; }
+html[data-visual-style=glass] :is(dialog,[popover],.search-history,#undo-toast) { transition: display var(--motion-duration,220ms) allow-discrete,overlay var(--motion-duration,220ms) allow-discrete; }
+html[data-visual-style=glass] dialog::backdrop { transition: display var(--motion-duration,220ms) allow-discrete,overlay var(--motion-duration,220ms) allow-discrete,background-color var(--motion-duration,220ms) ease; }
 html[data-visual-style=glass] dialog:not([open])::backdrop { background-color: transparent; }
 html[data-visual-style=glass] :is(dialog:not([open]),[popover]:not(:popover-open)),html[data-visual-style=glass] dialog:not([open])::backdrop { pointer-events: none; }
 @starting-style { html[data-visual-style=glass] dialog[open]::backdrop { background-color: transparent; } }

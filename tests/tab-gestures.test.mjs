@@ -37,3 +37,11 @@ test('group cards resolve live ordered members only for Ungroup', async () => {
     await assert.rejects(dropTargetTabIds([item('group:7')],'ungroup',async()=>[{id:1,groupId:8}]),/no longer/);
     await f.actions.dropIntoGroup(ids,'ungroup',1);assert.equal(f.tabs().every(t=>t.groupId===-1),true);assert.equal(f.tabs().find(t=>t.id===3).index,2);
 });
+
+test('new drawer groups preserve dialog name and color when moving between windows',async()=>{
+    const f=fixture([{id:1,windowId:1,index:0},{id:2,windowId:2,index:0}]);
+    const id=await f.actions.dropIntoGroup([1,2],'new',1,{title:'Reading',color:'green'});
+    const group=await f.api.tabGroups.get(id);
+    assert.equal(group.title,'Reading');assert.equal(group.color,'green');
+    assert.ok(f.tabs().every(tab=>tab.windowId===1&&tab.groupId===id));
+});

@@ -99,3 +99,16 @@ test('interrupted slides continue from their visible offset without blocking ano
     // Snapshots are consumed once and cannot leak into an unrelated update.
     assert.equal(motion.plugin(element, 'remain', before, before).timing.duration, 0);
 });
+
+test('category and accordion reveals discard stale geometry and fade surfaces',()=>{
+    const element=card(),motion=gridMotion({children:[element]},{Effect});motion.captureLayout();motion.revealNext();
+    const effect=motion.plugin(element,'remain',{left:0,top:0,width:0,height:0},after);
+    assert.equal(effect.target,element.surface);assert.deepEqual(effect.frames,[{opacity:0},{opacity:1}]);
+});
+
+test('group opening and session restoration fade cards even with previous-group coordinates',()=>{
+    const element=card({x:-220,y:-400}),motion=gridMotion({children:[element]},{Effect});
+    motion.captureLayout();motion.beginReveal();motion.captureLayout();
+    for(let i=0;i<2;i++)assert.deepEqual(motion.plugin(element,'remain',before,after).frames,[{opacity:0},{opacity:1}]);
+    motion.endReveal();assert.equal(motion.plugin(element,'remain',before,before).timing.duration,0);
+});

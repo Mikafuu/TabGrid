@@ -18,18 +18,16 @@
 </head>
 <body>
     <a class="skip-link" href="#tab-content">Skip to tabs</a>
+    <div class="brand-line"><img src="tileIcon.png" width="24" height="24" alt=""><span>TabGrid</span></div>
     <header class="page-header">
-        <div class="brand-line"><img src="tileIcon.png" width="24" height="24" alt=""><span>TabGrid</span></div>
+      <div class="header-surface">
         <div class="heading-row">
             <h1>Your tabs <span id="tab-count"></span></h1>
             <div class="page-actions"><button id="new-tab-btn" class="primary">+ New tab</button><button id="page-menu-btn" aria-label="More options" aria-haspopup="menu" aria-controls="page-menu" aria-expanded="false">⋮</button></div>
         </div>
-        <nav aria-label="Tab sources" class="sources">
-            <button data-view="all" hidden>All results</button>
-            <button data-view="open" aria-current="page">Tabs</button>
-            <button data-view="inactive">Idle tabs</button>
-            <button data-view="recent">Recently closed</button>
-        </nav>
+      </div>
+    </header>
+    <div class="page-controls">
         <div class="search-row">
             <div class="search-disclosure" id="search-disclosure"><label class="search-field">Search tabs
                 <input type="search" id="search-input" placeholder="Search titles or URLs" autocomplete="off">
@@ -42,13 +40,18 @@
                 <select id="sort-select"><option value="default">Tab order</option><option value="title">Title (A–Z)</option><option value="domain">Website (A–Z)</option><option value="accessed">Last used</option></select>
             </label>
             <label class="size-control">Card size
-                <input id="size-slider" aria-label="Card size" type="range" min="1" max="6" step="1" value="3" list="size-levels" aria-valuetext="4 tabs per row"><output id="size-value" for="size-slider">4 per row</output>
+                <span id="size-range" class="size-range"><input id="size-slider" aria-label="Card size" type="range" min="1" max="6" step="1" value="3" list="size-levels" aria-valuetext="4 tabs per row"><span class="size-knob" aria-hidden="true"></span></span><output id="size-value" for="size-slider">4 per row</output>
                 <datalist id="size-levels"><option value="1"></option><option value="2"></option><option value="3"></option><option value="4"></option><option value="5"></option><option value="6"></option></datalist>
             </label>
         </div>
         <div class="search-options" hidden></div>
-
-    </header>
+        <nav aria-label="Tab sources" class="sources">
+            <button data-view="all" hidden>All results</button>
+            <button data-view="open" aria-current="page">Tabs</button>
+            <button data-view="inactive" hidden>Idle tabs</button>
+            <button data-view="recent">Recently closed</button>
+        </nav>
+    </div>
     <p id="privacy-note" class="section-note" hidden>Incognito · Private tabs stay in this window mode. Previews, history, and undo records are not stored.</p>
     <main id="tab-content" tabindex="-1">
         <section id="open-section" aria-label="Tabs">
@@ -68,26 +71,27 @@
         </section>
     </main>
     <div id="page-menu" popover="manual" role="menu" aria-label="Page actions">
-<label class="menu-switch"><span id="all-windows-label">Show all windows</span><input type="checkbox" role="switch" id="opt-all-windows"></label>
+<label class="menu-switch"><span class="ui-icon" data-icon="filter_none" aria-hidden="true"></span><span id="all-windows-label">Show all windows</span><input type="checkbox" role="switch" id="opt-all-windows"></label>
         <div role="separator"></div>
-        <button id="refresh-btn" role="menuitem">Refresh</button>
-        <button id="regular-window-btn" role="menuitem">New regular window</button>
-        <button id="private-window-btn" role="menuitem">New incognito window</button>
-        <button id="new-group-btn" role="menuitem">New tab group</button>
+        <button id="refresh-btn" role="menuitem"><span class="ui-icon" data-icon="refresh" aria-hidden="true"></span><span>Refresh</span></button>
+        <button id="regular-window-btn" role="menuitem"><span class="ui-icon" data-icon="open_in_new" aria-hidden="true"></span><span>New regular window</span></button>
+        <button id="private-window-btn" role="menuitem"><span class="ui-icon" data-icon="visibility_off" aria-hidden="true"></span><span>New incognito window</span></button>
+        <button id="new-group-btn" role="menuitem"><span class="ui-icon" data-icon="tab" aria-hidden="true"></span><span>New tab group</span></button>
         <div role="separator"></div>
-        <button id="select-tabs-btn" role="menuitem">Select tabs</button>
-        <button id="close-window-btn" role="menuitem" class="danger">Close tabs in this window…</button>
+        <button id="select-tabs-btn" role="menuitem"><span class="ui-icon" data-icon="select_all" aria-hidden="true"></span><span>Select tabs</span></button>
+        <button id="close-window-btn" role="menuitem" class="danger"><span class="ui-icon" data-icon="close" aria-hidden="true"></span><span>Close tabs in this window…</span></button>
         <div role="separator"></div>
-        <button id="settings-btn" role="menuitem">Extension settings</button>
+        <button id="settings-btn" role="menuitem"><span class="ui-icon" data-icon="settings" aria-hidden="true"></span><span>Extension settings</span></button>
     </div>
     <dialog id="settings-dialog" aria-labelledby="settings-heading">
         <div class="dialog-heading"><h2 id="settings-heading">Extension settings</h2><button id="settings-done" aria-label="Close settings">×</button></div>
     </dialog>
     <dialog id="group-dialog" class="group-dialog" aria-labelledby="group-heading">
-        <header class="group-header"><div class="dialog-heading"><h2 id="group-heading">Tab group</h2><div class="group-controls"><button id="group-new">+ New tab in group</button><button id="group-menu-btn" aria-label="Group options" aria-haspopup="menu" aria-controls="context-menu" aria-expanded="false">⋮</button><button id="group-done" aria-label="Close group panel">×</button></div></div>
-        <label class="search-field">Search this group<input type="search" id="group-search" autocomplete="off"></label>
-        <div id="group-toolbar"></div></header>
+        <header class="group-header"><div class="dialog-heading"><h2 id="group-heading">Tab group</h2><div class="group-controls"><button id="group-new" class="primary">+ New tab in group</button><button id="group-menu-btn" aria-label="Group options" aria-haspopup="menu" aria-controls="context-menu" aria-expanded="false">⋮</button><button id="group-done" aria-label="Close group panel">×</button></div></div>
+        </header>
         <div class="group-content">
+        <div class="group-search-controls"><label class="search-field">Search this group<input type="search" id="group-search" autocomplete="off"></label>
+        <div id="group-toolbar"></div></div>
         <div id="group-drop-targets" class="drop-targets" aria-label="Group destinations" hidden></div>
         <p id="group-drag-tip" class="drag-tip" hidden></p>
         <div id="group-grid" class="grid-container"></div>

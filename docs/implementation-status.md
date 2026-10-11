@@ -423,3 +423,41 @@ Icon follow-up: unpacked Chrome toolbar icons require PNG. The ICO's original
 embedded PNG is now extracted losslessly as `tileIcon.png`, and all active icon
 references use it. The earlier fixture's ICO decoding did not certify toolbar
 compatibility. Native appearance remains pending extension reload/verification.
+
+### 2026-10-08 — Small navigation refinements
+
+Idle navigation now follows the configured duration and falls back to Tabs when disabled. Main-page actions and settings category tabs use bundled, licensed Google Material outlined icons. Group New tab shares primary action colors across material styles. All-window sections put the current window first without changing window numbering or the remaining creation order.
+
+### 2026-10-08 — Drawer, headers, and motion controls
+
+Simplified the group destination drawer to a blank fixed-height handle, left/right docking by page half, and wrapped targets capped at one-third of viewport width. Expanded height grows with rows, with overflow scrolling for long lists. Legacy top/bottom placements migrate to a side.
+
+Title/action headers remain visible in the page and group panel; search/filters scroll, with source categories beneath them. The search shortcut scrolls the relevant field into view. Removed the redundant favicon in the corner of full group-member previews. Appearance now offers Reduce animations and Efficient/Standard/Smooth speed choices with visual symbols. Standard preserves existing reorder timing; speed changes retain Sortable/auto-animate ownership. Group entry and other UI reveals now also work in Classic; system reduced motion remains respected.
+
+### 2026-10-09 — Menus, settings search, and window sections
+
+Submenu hover waits 160 ms for the first opening and switches immediately when a submenu is already open; keyboard and click opening remain immediate. Menu reveals use opacity only. The page menu follows its sticky header, whose background spans the viewport. Only main-grid tab/group menus fold the header away. Returning from Recently closed uses card fades without stale layout travel; applying a live-tab filter there returns to Tabs.
+
+Settings now has a sidebar search with setting/category results, keyboard navigation, and focus/scroll to the selected control. All-window sections have tinted, keyboard-operable accordion headings; collapsed sections are excluded from visible selection. The existing Sortable and stable-card motion architecture is preserved.
+
+### 2026-10-10 — Motion follow-up (Classic verification)
+
+The sticky header now keeps a stationary animation anchor and moves only its visual surface, so folding still animates below the page top. A single foreground border spans the entire header edge. Window accordions animate measured height and opacity while collapsed content becomes inert immediately. Group entry and its asynchronous session restoration use fade-only card effects; card-size track progress animates between values without a preference-save notification cancelling it.
+
+Expanded drawer height follows its rows. Docking applies immediately and serializes persistence, with the latest local placement protecting against stale notifications; quick pointer releases are recognized even without an intermediate move. Drawer proximity suspends grid insertions while leaving group receivers available and restores reordering outside the approach area. Fallback tab copies shrink over group targets; group copies lose their frame and spread four preview tiles over Ungroup. Single-tab drags hide Ungroup. All feedback leaves live Sortable slots untouched and uses reusable auto-animate anchors.
+
+### 2026-10-10 — Control and popup interaction polish
+
+Drag outlines now belong to the moving card surface: they shrink with grouping feedback and fade with the group frame over Ungroup. The range input retains native mouse/keyboard behavior, while a foreground knob and track share one animated progress value. Tint families use accessible disclosure buttons, measured collapse/expand effects, and the same rotating downward triangle as Filters. Animation speed has space above its legend.
+
+Submenu hover uses a short first-open delay and immediate switching once a submenu is open. The browser-only timer receiver error that prevented hovering has been corrected and covered by a regression test. Group creation from the page, context menu, dropped cards, or selected drawer cards uses the name/color dialog; drawer paths do not mutate tabs until submission. Action dialogs dismiss on a complete outside click, preserve inside interactions, and restore focus. Existing menus, filters, group panels, and settings retain outside dismissal.
+
+### 2026-10-10 — Hover-only submenu revision
+
+Supersedes the earlier delayed-opening behavior: submenus now open immediately on hover, without a click or ArrowRight opening path. The parent item and its submenu form one hover region, so actions remain reachable. Leaving both starts the existing opacity exit immediately; there is no dismissal timer. Async submenu population still checks its revision and cannot reopen a dismissed menu.
+
+### 2026-10-10 — Submenu visual dismissal and delayed entry
+
+Supersedes the immediate-opening revision above: every hover entry now waits 150 ms, including switching between submenu items. Leaving the parent/submenu region starts dismissal without a timer. Quick pointer passes and closing the parent menu cancel pending entry. Clicks still do not toggle submenus.
+
+Fixed the actual visual dismissal bug: auto-animate had already assigned the nested submenu to its parent observer, so its opacity plan was never consumed by the submenu observer. The parent observer can now consume the nested surface's plan. This preserves auto-animate ownership and opacity-only fades while eliminating the fully opaque hold during the native popover's discrete exit.

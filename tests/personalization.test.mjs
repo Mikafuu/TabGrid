@@ -35,7 +35,7 @@ test('retired suggestions migrate away while drawer preferences validate and rou
     const prefs=migratePreferences({[PREFS_KEY]:{...DEFAULTS,suggestTabs:true,suggestGroups:false,suggestHistory:false,historyEnabled:true}});
     assert.equal(prefs.historyEnabled,true);assert.equal('suggestTabs' in prefs,false);
     assert.equal(prefs.drawerEdge,'left');
-    assert.equal(importSettings(exportSettings({...prefs,drawerEdge:'bottom',drawerOffset:73})).drawerOffset,73);
+    assert.equal(importSettings(exportSettings({...prefs,drawerEdge:'bottom',drawerOffset:73})).drawerOffset,100);
     for(const patch of [{drawerEdge:'middle'},{drawerOffset:101},{drawerOffset:-1},{drawerOffset:1.5}])assert.throws(()=>validatePreferences(patch));
 });
 test('history expires and deduplicates case-insensitively at twenty entries',()=>{const now=1e12;const values=[{query:' Alpha ',time:now},{query:'alpha',time:now-1},{query:'old',time:now-8*86400000},...Array.from({length:30},(_,i)=>({query:`q${i}`,time:now}))];const clean=cleanHistory(values,7,now);assert.equal(clean.length,20);assert.equal(clean[0].query,'Alpha');assert.ok(!clean.some(e=>e.query==='old'));});

@@ -124,3 +124,14 @@ test('column sizing has six discrete levels and migrates old pixel preferences',
     assert.equal(cardColumns(undefined, '450px', 343), 1);
     assert.equal(cardColumns(2, '220px', 1260), 2);
 });
+
+test('all-window sections prioritize this window without renumbering or changing creation order', () => {
+    const order = [9, 2, 7, 4];
+    const items = [{key:'tab:1',windowId:7},{key:'tab:2',windowId:9},{key:'tab:3',windowId:7}];
+    const sections = windowSections(items, 7, order);
+    assert.deepEqual(sections.map(s => s.windowId), [7,9,2,4]);
+    assert.deepEqual(sections[0].items.map(i => i.key), ['tab:1','tab:3']);
+    assert.deepEqual(sections[2].items, []);
+    assert.deepEqual(order, [9,2,7,4]);
+    assert.deepEqual(windowSections([], 99, order).map(s => s.windowId), order);
+});
