@@ -1,0 +1,98 @@
+/* Final glass states: optical layers belong to outer containers. Controls inside
+   them use translucent color only, preserving the wallpaper through all states. */
+html[data-visual-style=glass] {
+    --liquid-control-tint: color-mix(in srgb,var(--surface) 12%,transparent);
+    --liquid-hover-fill: color-mix(in srgb,var(--accent) 12%,transparent);
+    --liquid-pressed-fill: color-mix(in srgb,var(--accent) 21%,transparent);
+}
+.liquid-control-shell { display: inline-flex; min-width: 0; }
+.liquid-control-shell > :is(input,select,textarea) { width: 100%; min-width: 0; }
+.search-field > .liquid-control-shell { width: 100%; }
+html[data-visual-style=glass] .liquid-control-shell { position: relative; border-radius: 999px; isolation: isolate; }
+html[data-visual-style=glass] .liquid-control-shell:has(textarea) { border-radius: 16px; }
+html[data-visual-style=glass] :is([data-glass-owner],.filter-toggle) { --liquid-surface-tint: color-mix(in srgb,var(--surface) 22%,transparent); }
+html[data-visual-style=glass] :is(dialog,[popover],.live-filters,.search-history)[data-glass-owner] { --liquid-surface-tint: color-mix(in srgb,var(--surface) 42%,transparent); }
+html[data-color-mode=dark][data-visual-style=glass] [data-glass-owner] { --liquid-surface-tint: color-mix(in srgb,var(--surface) 66%,transparent); }
+html[data-visual-style=glass] :is(button,.liquid-control-shell)[data-glass-owner]:hover { --liquid-surface-tint: color-mix(in srgb,var(--accent) 14%,transparent); }
+html[data-visual-style=glass] button[data-glass-owner]:is(:active,[aria-pressed=true],[aria-expanded=true]) { --liquid-surface-tint: color-mix(in srgb,var(--accent) 24%,transparent); }
+html[data-visual-style=glass] [data-glass-owner].filter-glass-ready { background: transparent !important; }
+html[data-visual-style=glass] :is(button,input,select,textarea,.filter-picker,.size-knob):where(:not(.menu-colors button):not(.card-open)),
+html[data-visual-style=glass] :is(.live-filters,.toolbar)[data-glass-nested] {
+    background-color: var(--liquid-control-tint) !important; background-image: none !important;
+    box-shadow: inset 0 1px 0 color-mix(in srgb,var(--surface) 24%,transparent) !important;
+    border-color: color-mix(in srgb,var(--text) 15%,transparent);
+    color: var(--text);
+}
+html[data-visual-style=glass] .liquid-control-shell > :is(input,select,textarea) { background: transparent !important; box-shadow: none !important; }
+html[data-visual-style=glass] :is(button,input,select,textarea,.filter-picker-option,[role=option]):is(:hover,:focus-visible):where(:not(:disabled):not(.card-open):not(.menu-colors button)) {
+    background-color: var(--liquid-hover-fill) !important; background-image: none !important;
+    color: var(--text); filter: none;
+}
+html[data-visual-style=glass] :is(button,input,select):active:where(:not(:disabled):not(.card-open):not(.menu-colors button)),
+html[data-visual-style=glass] :is([aria-selected=true],[aria-pressed=true]):not(.menu-colors button):not(.card-open) { background-color: var(--liquid-pressed-fill) !important; }
+html[data-visual-style=glass] :is(button.primary,input[role=switch]:checked) { background-color: color-mix(in srgb,var(--accent) 30%,transparent) !important; color: var(--text) !important; }
+html[data-visual-style=glass] button.danger:is(:hover,:active,:focus-visible) { background-color: color-mix(in srgb,var(--danger) 18%,transparent) !important; color: var(--danger) !important; }
+html[data-visual-style=glass] .filter-disclosure > .filter-toggle {
+    display: flex; align-items: center; width: fit-content; min-height: 44px;
+    padding: 10px 17px; gap: 9px; border: 1px solid color-mix(in srgb,var(--text) 15%,transparent);
+    border-radius: 999px; color: var(--text); font-weight: 600;
+}
+html[data-visual-style=glass] .filter-toggle::after { display: none; }
+html[data-visual-style=glass] .header-surface { border-radius: 0 0 20px 20px; isolation: isolate; }
+html[data-visual-style=glass] .header-surface::before { background: transparent; }
+html[data-visual-style=glass] .header-surface::after { display: none; }
+html[data-visual-style=glass] :is(.card-surface,.header-surface)[data-glass-owner] { position: relative; }
+html[data-visual-style=glass] .card-surface { --liquid-surface-tint: color-mix(in srgb,var(--frame) 26%,transparent); }
+html[data-visual-style=glass] .group-card > .card-surface { --liquid-surface-tint: color-mix(in srgb,var(--group-color) 27%,transparent); }
+html[data-visual-style=glass] .card:is(:hover,.selected,.menu-active) > .card-surface { --liquid-surface-tint: color-mix(in srgb,var(--accent) 23%,transparent); }
+html[data-visual-style=glass] .group-card:is(:hover,.selected,.menu-active) > .card-surface { --liquid-surface-tint: color-mix(in srgb,var(--group-color) 38%,transparent); }
+html[data-visual-style=glass] :is(.card-surface::after,.card-info,.card-meta,.group-preview,.card-open) { background: transparent !important; }
+html[data-visual-style=glass] .card-preview { background: color-mix(in srgb,var(--surface) 8%,transparent); }
+html[data-visual-style=glass] .group-tile { background: color-mix(in srgb,var(--group-color) 12%,transparent); }
+html[data-visual-style=glass] .card-surface[data-glass-nested] { background: color-mix(in srgb,var(--frame) 12%,transparent) !important; box-shadow: none; }
+html[data-visual-style=glass] :is(.settings-group,.settings-group > label,.settings-sidebar,.settings-tabs,.settings-panels,.settings-panel,.font-sample) { background: transparent !important; background-image: none !important; box-shadow: none !important; }
+html[data-visual-style=glass] input[role=switch]::before { background: color-mix(in srgb,var(--text) 38%,transparent); }
+html[data-visual-style=glass] input[role=switch]:checked::before { background: color-mix(in srgb,var(--surface) 72%,transparent); }
+html[data-visual-style=glass] input[type=range]::-webkit-slider-thumb { background: color-mix(in srgb,var(--surface) 55%,transparent); }
+/* No hover fill over the moving selection pill. Focus remains an outline. */
+html[data-visual-style=glass] .sources > button,
+html[data-visual-style=glass] .sources > button:is(:hover,:active,:focus-visible,[aria-current=page]) {
+    background: transparent !important; border-color: transparent !important; box-shadow: none !important; filter: none !important; scale: 1;
+}
+html[data-visual-style=glass] .sources > button[aria-current=page] { cursor: grab; touch-action: pan-y; }
+html[data-visual-style=glass] .sources[data-pill-dragging] > button { cursor: grabbing; user-select: none; }
+html[data-visual-style=glass] .sources > .liquid-tab-indicator { --liquid-surface-tint: color-mix(in srgb,var(--surface) 22%,transparent); }
+html[data-visual-style=glass] [data-glass-owner]:not(.filter-glass-ready) { background-color: var(--liquid-surface-tint) !important; }
+@media (prefers-reduced-transparency:reduce) {
+    html[data-visual-style=glass] [data-glass-owner],html[data-visual-style=glass] .liquid-control-shell { background: var(--surface) !important; }
+}
+@media (forced-colors:active) {
+    html[data-visual-style=glass] :is([data-glass-owner],button,input,select,textarea) { background: Canvas !important; color: CanvasText !important; border-color: CanvasText; }
+    html[data-visual-style=glass] .sources > .liquid-tab-indicator { border: 2px solid Highlight; }
+}
+html[data-visual-style=glass] .sources.sources > button,
+html[data-visual-style=glass] .sources.sources > button:is(:hover,:active,:focus-visible,[aria-current=page]):not(:disabled) {
+    background: transparent !important; background-color: transparent !important;
+    border-color: transparent !important; box-shadow: none !important;
+}
+html[data-visual-style=glass] .size-knob { background: color-mix(in srgb,var(--accent) 48%,transparent) !important; border: 1px solid color-mix(in srgb,var(--accent) 68%,transparent); z-index: 2; }
+html[data-visual-style=glass] #size-slider { background: linear-gradient(to right,color-mix(in srgb,var(--accent) 32%,transparent) var(--size-progress),transparent var(--size-progress)) !important; }
+
+html[data-visual-style=glass] input[type=checkbox][role=switch]:checked { background-color: color-mix(in srgb,var(--accent) 42%,transparent) !important; border-color: color-mix(in srgb,var(--accent) 65%,transparent); }
+html[data-visual-style=glass] .settings-tabs button[aria-selected=true] { background-color: color-mix(in srgb,var(--accent) 17%,transparent) !important; }
+html[data-visual-style=glass] .sources.sources > button[data-view]:is(:hover,:active,:focus-visible,[aria-current=page]):not(:disabled) { background: transparent !important; box-shadow: none !important; }
+html[data-color-mode=dark][data-visual-style=glass] .card:is(:hover,.selected,.menu-active) > .card-surface { --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 76%,var(--accent)) 72%,transparent); }
+html[data-color-mode=dark][data-visual-style=glass] .group-card > .card-surface { --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 65%,var(--group-color)) 70%,transparent); }
+html[data-color-mode=dark][data-visual-style=glass] .group-card:is(:hover,.selected,.menu-active) > .card-surface { --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 52%,var(--group-color)) 74%,transparent); }
+html[data-color-mode=dark][data-visual-style=glass] :is(button,.liquid-control-shell)[data-glass-owner]:hover { --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 80%,var(--accent)) 66%,transparent); }
+html[data-visual-style=glass] .card { --frame-text: var(--text); color: var(--text); }
+html[data-visual-style=glass] .card.last-opened > .card-surface { --liquid-surface-tint: color-mix(in srgb,var(--last-opened) 24%,transparent); }
+html[data-color-mode=dark][data-visual-style=glass] .card.last-opened > .card-surface { --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 76%,var(--last-opened)) 72%,transparent); }
+
+html[data-color-mode=dark][data-visual-style=glass] .sources { background: color-mix(in srgb,var(--surface) 52%,transparent); }
+html[data-color-mode=dark][data-visual-style=glass] .sources > .liquid-tab-indicator { --liquid-surface-tint: color-mix(in srgb,var(--surface) 66%,transparent); }
+
+/* Expanded window headers must retain a readable film over bright wallpaper. */
+html[data-visual-style=glass] .window-toggle[data-glass-owner]:is(:hover,:active,[aria-expanded]) {
+    --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 90%,var(--window-color)) 94%,transparent);
+}

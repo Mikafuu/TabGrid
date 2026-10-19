@@ -1,155 +1,71 @@
 # Appearance settings
 
-Appearance is the second category in Extension Settings. Changes save immediately
-through the shared validated preference model. Existing installations retain their
-settings; missing appearance fields default to Classic, Follow system, Calm editorial, and
-Geist. Appearance is included in the existing version-1 local JSON backup. Invalid
-style/mode/theme/font values reject the whole import before changes are applied.
+Current behavior, updated 2026-10-18. Appearance is the second category in
+Extension settings. Changes save immediately through the validated local
+preference model and are included in settings backups. Invalid values reject
+the import before changes are applied. Custom background image data is local to
+this computer and excluded from backups.
 
-Color mode and font are independent of the theme. Follow system listens for live
-`prefers-color-scheme` changes. Manual Light and Dark override system colors,
-including native controls, dialogs, group panels, menus, and primary buttons.
-Motion and card-information controls have moved from General to Appearance.
-Website address defaults on, last-used time and window identity default off.
-Group identity defaults on and appears only in main query results with member
-search enabled, rather than in normal group cards or the open group panel.
-Reset appearance resets these appearance preferences only.
+## Styles, color tints, and fonts
 
-## Independent visual styles — 2026-09-30
+Three visual styles are available: **Classic**, **Flat**, and **Glassmorphism**.
+Classic preserves the tint's original finishes; Flat uses solid color blocks and
+compact controls; Glassmorphism uses translucent surfaces, rim light, and
+wallpaper refraction where supported. Neumorphism and Claymorphism are retired;
+saved values migrate to Classic. Their historical inspiration credits remain
+in the README, but they are not available settings.
 
-Visual style now precedes Color tint. Classic preserves the previous theme finishes
-and is the migration/default choice. The four new styles override those finishes,
-so every one of the 22 existing palettes can tint each material in Light or Dark.
-The `visualStyle` preference is validated, stored locally, and included in backups.
-Reset appearance restores Classic along with the existing appearance defaults.
+The visual-style cards precede color mode and font controls. The selected color
+tint is shown beneath the Color tint heading, followed by the tint families.
+Custom background settings follow the tint choices. Info icons expose contextual
+help on hover, keyboard focus, or click without permanent explanatory paragraphs.
+Settings search focuses the actual visible control, excluding these help icons.
 
-- Flat: filled navigation and settings categories, bold titles, solid controls,
-  squared switches, crisp small radii, and no surface shadows or blur.
-- Glassmorphism: translucent frosted cards, beveled light, pill controls, a
-  stationary folded canvas, and actual backdrop blur on the shared navigation
-  lens and fixed overlays. Group and last-used
-  frames stay solid. Reduced-transparency users get opaque surfaces.
-- Neumorphism: a shared matte canvas, convex molded cards, opposing soft shadows,
-  raised buttons, and recessed inputs/navigation/settings categories.
-- Claymorphism: floating inflated tiles, molded buttons, outlined soft fields,
-  and individual raised navigation buttons with one outer/two inner shadows.
+Color mode is independent of style and tint. Follow system listens for color-mode
+changes; Light and Dark override it. Fonts are Geist, Outfit, Plus Jakarta Sans,
+Newsreader, Geist Mono, and System. The five named font families are bundled
+locally with OFL notices and source links in `assets/fonts/README.md`.
 
-Material tokens live in materials.css, after appearance.css, with refined styles
-in flat.css, glass.css, neumorphism.css, and clay.css. They never transform
-outer card slots or introduce another animation system. Chrome group colors,
-selected borders, last-opened priority, and reduced-motion behavior remain intact.
-All effects are local CSS. No texture images, remote assets, or runtime requests.
+Backgrounds can be cropped with the zoom control and repositioned by dragging
+the preview or using its arrow-key controls. Transparency and blur are separate
+preferences. A quiet backing keeps main search/sort/size labels readable against
+arbitrary wallpapers, and glass window headings retain a strong surface tint.
+The image opacity preference itself is not changed by these readability layers.
 
-The UI/UX Pro Max style guidance informed the neumorphic and clay surface recipes,
-with visible focus, readable text, and restrained effects adapted to a dense tab
-manager. The supplied
-reference images inform the glass layers. These are web styles, not native Apple
-materials. Blur is limited to the navigation lens and fixed overlays to avoid
-a blur layer for every card.
+Reset appearance restores Classic, Follow system, Calm editorial, Geist,
+system-aware motion, Standard animation speed, and default card details. Outside
+incognito it also removes the custom image and resets its adjustments. It does
+not reset tab behavior, filters, history, or keyboard shortcuts.
 
-### Refined Flat material and motion
+## Rendering and motion
 
-The [Designmodo Flat UI repository](https://github.com/designmodo/Flat-UI) and its
-[official demo](https://designmodo.github.io/Flat-UI/) informed Flat's solid color
-blocks, clear selected states, compact corners, and strong typography. The
-gpt-taste and design-taste-frontend skills were adapted to the existing desktop
-utility layout. The selected local font and secondary tint remain independent;
-no Flat UI framework, third-party artwork, remote assets, or new dependency was
-imported. `flat.css` loads after the shared materials and before drawer geometry.
+Sortable owns card ordering and stable outer `.card` slots. Grid motion uses
+inner `.card-surface` elements and the existing auto-animate owner, including
+interrupted-movement offsets. Direct pointer tracking remains immediate.
 
-Flat adds 180 ms interface effects through the existing bundled auto-animate:
-menus/history/toasts enter and exit, dialogs fade, settings categories and
-conditional rows settle, card-size/disclosure changes move inner card surfaces,
-and the edge drawer expands, resizes, and docks smoothly. Direct pointer tracking
-stays immediate. Sortable continues to own card order and the accepted interrupted
-120 ms reorder effects remain unchanged. Outer card slots never animate. Layout
-captures retain the first visible position across synchronous renders and account
-for the nearest scroller. Session position restoration remains immediate.
+Classic/Flat interface timing defaults to 180 ms, Glass to 220 ms; Efficient,
+Standard, and Smooth apply speed factors of 0.65, 1, and 1.6. Glass interactions
+can use Liquid DOM springs/easing; staged group morphs retain explicit keyframes
+through the existing motion owner. Motion preferences and system reduced motion
+cancel or skip effects.
 
-Native closing surfaces become inert and leave the accessibility tree immediately;
-discrete CSS preserves only their brief exit paint. Dialogs never transform their
-fixed drawer's coordinate system. An open-attribute observer supplies dialog
-events on older supported Chrome versions and deduplicates with native events.
-Follow system honors live reduced-motion changes;
-Disable animations cancels active effects and stops new movement. Glass,
-Neumorphism, and Clay use the same effect ownership with their own settling timing;
-Classic retains its existing motion treatment.
+Group panels expand from the source group card and collapse back to it, with a
+staged preview/content crossfade and a dim/blur backdrop transition. The source
+card stays visible. Base morph duration is 260 ms (169/260/416 ms by speed);
+missing, filtered, or offscreen sources use a fade. Normal closing keeps the
+native modal until the animation completes. During drag-out continuation, a
+noninteractive copy finishes the close animation while the actual modal releases
+the drag to the main grid. Fixed drawers are hidden during the morph. See
+[the interaction reference](chrome-grid-interaction-research.md) for geometry,
+thresholds, and intentional differences from Chrome Android.
 
-### Refined Glassmorphism material and motion
-
-The [liquidGL repository](https://github.com/naughtyduk/liquidGL) informed the
-beveled rims, translucency, soft frost, and short settling motion. The requested
-gpt-taste and design-taste-frontend skills were adapted to the existing utility
-layout. Glass has a shared navigation capsule, etched search fields, restrained
-stationary reflections, pill controls, and floating glass overlays. `glass.css`
-loads after shared materials/Flat and before the drawer's geometry rules.
-
-This is a CSS visual approximation, not liquidGL's WebGPU/WebGL refraction or
-self-rasterizer. No renderer, package, remote asset, or new dependency is added.
-Cards use transparent film and inset rim light without per-card backdrop filters.
-Blur is limited to navigation and fixed overlays. The group panel stays opaque
-and unfiltered so its fixed drawer keeps viewport coordinates.
-
-Glass interface effects use 220 ms settling through the bundled auto-animate.
-Menus/history/toasts, settings category/conditional changes, resizing/disclosure
-reflow, and drawer expansion/docking share the existing owner. Dialogs only fade.
-Direct pointer tracking stays immediate. The accepted 120 ms reorder still
-captures interrupted surface offsets; Sortable controls order and outer slots
-never animate. Flat retains 180 ms interface effects. Motion preference/system
-reduction cancels active movement. Reduced transparency removes sheen/blur and
-uses opaque surfaces; unsupported blur also has solid CSS defaults.
-
-### Refined Neumorphism material and motion
-
-The [adamgiebl/neumorphism repository](https://github.com/adamgiebl/neumorphism)
-and its [official generator](https://neumorphism.io/) informed opposing light and
-shadow, convex forms, and pressed surfaces. The gpt-taste and design-taste-frontend
-skills were adapted to the existing utility layout. This is original local CSS,
-not the generator's React app. No framework, remote asset, or dependency was added.
-`neumorphism.css` loads after shared materials/Flat/Glass and before drawer geometry.
-
-A tint-derived matte plane joins cards and canvas. Consistent upper-left lighting
-raises cards/buttons, while fields, the navigation tray, preview wells, and active
-settings categories are recessed. Circular icon controls and molded switches
-complete the treatment. Text contrast, focus rings, group colors, last-opened
-priority, selected circles, and the selected local font remain intact. Dark uses
-less highlight and deeper ambient shadow. Forced colors remove depth and retain
-visible borders/selected states. Calculated plane/gradient endpoint contrast
-passes 4.5:1 across all 44 tint/mode combinations, excluding shadow pixels and
-arbitrary screenshot imagery.
-
-Menus/history/toasts, category/conditional changes, card resizing/disclosure, and
-drawer expansion/docking settle through bundled auto-animate at 200 ms. Direct
-pointer tracking remains immediate. Dialogs only fade and never transform fixed
-drawer coordinates. Motion preferences/system reduction cancel active effects.
-Sortable and the accepted 120 ms interrupted reorder remain unchanged; only inner
-card surfaces move, with stable outer slots and a transparent ghost. Flat retains
-180 ms, Glass 220 ms. Existing saved preferences and backups need no migration.
-
-### Refined Claymorphism material and motion
-
-The [codeAdrian/clay.css repository](https://github.com/codeAdrian/clay.css) and its
-[official demo](https://codeadrian.github.io/clay.css/) informed the inflated forms
-and one-outer/two-inner-shadow recipe. The gpt-taste and design-taste-frontend skills
-were adapted to the existing desktop utility. This is original local CSS, not an
-import of the library or Sass mixin. No package, texture image, remote asset, or
-new dependency was added. `clay.css` loads after the other materials and before
-the drawer's geometry rules.
-
-Cards float above the canvas rather than sharing Neumorphism's matte plane.
-Rounded molded buttons, separate raised source buttons, outlined soft fields,
-sculpted overlays, and inset preview wells give Clay its own finish. Selected
-circles, native group colors, last-opened priority, focus rings, fonts, and tints
-remain intact. Dark lowers the highlight and deepens the ambient shadow. Forced
-colors remove depth and retain visible borders/selected states.
-
-Menus/history/toasts, settings categories/conditional rows, card resizing/filter
-disclosure, and drawer expansion/docking settle through the existing auto-animate
-owner at 240 ms. Direct pointer tracking stays immediate. Dialogs only fade;
-their fixed drawer retains viewport coordinates. Motion preferences/system
-reduction cancel active effects. Sortable still owns ordering; accepted 120 ms
-interrupted reorder moves only inner card surfaces, with stable outer slots and
-a transparent ghost. Existing preferences and backups need no migration.
+Glass uses bundled `@liquid-dom/core` and `@liquid-dom/layout` for supported
+WebGPU surfaces and interactions. The renderer samples a local wallpaper
+texture, not live HTML-in-Canvas; no experimental browser flag is needed for that
+path. CSS supplies the fallback without WebGPU or a custom image. Wallpaper
+textures are reused; controls use shared rendering infrastructure. Reduced
+transparency and forced colors use opaque/accessible fallbacks. Glass can use
+more graphics power; its settings info tip makes the battery tradeoff explicit.
 
 ## Theme catalogue and skill mapping
 
@@ -184,44 +100,39 @@ accent colors, outlines, radii, and typographic emphasis. With another visual st
 the theme supplies only its color tint. They do not change card
 sizing, tab order, interactions, or the Sortable/auto-animate architecture.
 
-Glass backdrop effects are restricted to the navigation lens and fixed overlays, with nearly opaque surfaces,
-solid CSS fallbacks, and reduced-transparency handling. Ambient backgrounds are
-stationary. No marketing hero, scroll takeover, marquee, external
-image, or additional animation library is introduced into the tab manager.
+## Group presentation and drop targets
 
-## Fonts and offline use
+Existing group choices use `groupLabel()`: a decorative Chrome group-color marker
+and the name (or Untitled group). New-group creation uses the native nine-color
+radio palette. Keep names and keyboard access intact when styling these controls.
 
-Six independent choices: Geist, Outfit, Plus Jakarta Sans, Newsreader, Geist Mono,
-and the device's System font. The five named fonts are bundled variable WOFF2
-files, with their SIL Open Font License files in assets/fonts. Source URLs and
-attribution are in assets/fonts/README.md. Fonts are loaded from the extension,
-never a remote font service. Proprietary fonts mentioned by the skills are not
-assumed available or redistributed. No runtime network permission or dependency
-was added.
+Show group drop targets defaults **off**; saved choices are retained. When enabled,
+the drawer docks to the left or right viewport edge and contains horizontally
+scrollable destinations. Whole-group drags expose Ungroup. Pinned-tab drags hide
+the drawer and cannot be accepted as grouping drops; selection-based attempts
+explain that the tabs must first be unpinned. Pinned tabs can still move between
+matching pinned areas in different windows. Empty pinned areas appear only for
+that drag and stay hidden at rest.
 
-The catalogue is grouped in native disclosures. Native radio buttons provide
-arrow-key selection, checked states, and focus visibility. A live font sample
-and selected-theme label support comparison. The gallery becomes one column on
-narrow screens; the settings category rail remains keyboard accessible.
+Group tabs by dragging defaults **on**, independently of the drawer. Swipe to
+close defaults **off** and uses mouse dragging only; holding first enters reorder
+or grouping mode. Horizontal pixel-wheel gestures below the category header
+navigate categories instead of closing cards. Card-size preferences persist,
+while the displayed per-row count follows responsive limits (three columns at
+900 px and two at 650 px).
 
-## Group presentation and edge drawer
+## Wallpaper captions and crop
 
-Use `groupLabel()` from `lib/group-presentation.mjs` for existing group choices:
-a native group-color marker followed by the group name (or Untitled group).
-Keep the marker decorative and the text accessible. New group and Ungroup remain
-neutral. Apply this convention to future group menus, selectors, and settings;
-card headers already carry their native group-color dot. New-group creation uses
-the shared nine-color native radio palette, with keyboard arrow selection.
+The search/sort/card-size row has no wallpaper backing. Its bare captions and
+per-row count choose light or dark text by sampling the locally rendered
+wallpaper, including opacity and crop, with a subtle text shadow for mixed areas.
+Sampling is event-driven; no image is sent anywhere. Native control text keeps
+its normal surface colors. Forced colors and reduced transparency use the
+normal theme fallback.
 
-The edge drawer is enabled for new installations; explicit saved off choices
-remain off. It docks flush to any edge as a half pill. Its end buttons resize the
-inactive length (64–320 px); click changes it by 32 px, arrows by 16 px, Home/End
-choose the limits, and dragging an end adjusts continuously. Dragging the middle
-uses a fixed 128 px full pill. Alt+arrows dock to the corresponding edge. Targets
-expand in a horizontal, contained scroll row on every edge. Whole-group drags
-show only Ungroup and resolve the group's live members before applying the drop.
-These overlay changes leave Sortable and stable-card surface motion unchanged.
-
-Drawer edge geometry takes priority over material radius tokens. Group panels
-keep their material tint and sheen; backdrop/drawer blur supplies the glass
-finish without creating a different containing block for the fixed group drawer.
+At 100% zoom the image uses the minimum cover fit, with no hidden overscan
+enlargement. Only cropping required by the screen/image aspect-ratio difference
+remains. Both sliders and preview dragging use the same visible-viewport pan
+range; a fully visible axis has no further area to pan. Website and Group
+pickers keep their glass decoration outside the scrolling options, so their
+content cannot extend the scroll range.

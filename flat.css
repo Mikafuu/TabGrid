@@ -7,7 +7,7 @@ html[data-visual-style=flat] {
     --flat-stroke: color-mix(in srgb, var(--surface) 74%, var(--text));
 }
 html[data-visual-style=flat] body { background: var(--bg); }
-html[data-visual-style=flat] :is(h1,h2,h3,.card-title,.brand-line) { font-weight: 700; letter-spacing: -.025em; }
+html[data-visual-style=flat] :is(h1,h2,h3,.card-title) { font-weight: 700; letter-spacing: -.025em; }
 html[data-visual-style=flat] h1 { font-size: clamp(30px,3.4vw,44px); }
 html[data-visual-style=flat] #tab-count { letter-spacing: 0; }
 html[data-visual-style=flat] button { border-radius: 6px; font-weight: 600; }

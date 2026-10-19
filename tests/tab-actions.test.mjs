@@ -110,3 +110,15 @@ test('grouping rejects a pinned or cross-window selection without changing tabs'
     await assert.rejects(f.actions.group([2,3],null),/one window/);
     assert.equal(f.groups().length,0);
 });
+
+
+test('pinned grouping fails before mutation but pinned cross-window moves remain allowed', async () => {
+    const f=fixture([{id:1,windowId:1,index:0,pinned:true},{id:2,windowId:1,index:1},{id:3,windowId:2,index:0,groupId:7}], [{id:7,windowId:2,title:'Destination',color:'blue'}]);
+    for(const destination of ['new',7]){
+        await assert.rejects(f.actions.dropIntoGroup([1,2],destination,2),/Unpin selected tabs/);
+        assert.equal(f.calls.length,0);
+    }
+    await f.actions.dropAt({keys:['tab:1'],windowId:2,pinned:true});
+    const moved=f.tabs().find(t=>t.id===1);
+    assert.equal(moved.windowId,2);assert.equal(moved.pinned,true);assert.equal(moved.groupId,-1);
+});

@@ -27,7 +27,7 @@ test('grid motion excludes its container and Sortable placeholders/copies', () =
             const [effect, options] = plugin(element, action, before, after);
             assert.equal(effect.timing.duration, 0);
             assert.deepEqual(effect.frames, []);
-            assert.equal(options.styleReset, false);
+            assert.deepEqual(options.styleReset, action === 'remove' ? {display:'none'} : false);
         }
     }
 });
@@ -111,4 +111,29 @@ test('group opening and session restoration fade cards even with previous-group 
     motion.captureLayout();motion.beginReveal();motion.captureLayout();
     for(let i=0;i<2;i++)assert.deepEqual(motion.plugin(element,'remain',before,after).frames,[{opacity:0},{opacity:1}]);
     motion.endReveal();assert.equal(motion.plugin(element,'remain',before,before).timing.duration,0);
+});
+
+test('a parked swipe owns its surface even if a background refresh triggers layout',()=>{
+    const element=card({x:-50}),matches=element.matches;
+    element.matches=selector=>selector.includes('[data-swipe]')||matches(selector);
+    const motion=gridMotion({children:[element]},{Effect});motion.captureLayout();motion.capture();
+    const [effect,options]=motion.plugin(element,'remain',before,after);
+    assert.deepEqual(effect.frames,[]);assert.equal(effect.timing.duration,0);assert.equal(options.styleReset,false);
+});
+
+test('an ignored mutation batch cannot replay old geometry on a later frame',()=>{
+    const callbacks=[],element=card(),motion=gridMotion({children:[element]},{Effect,frame:fn=>callbacks.push(fn)});
+    motion.captureLayout(); // An auto-animate removal batch skips its plugin.
+    callbacks.shift()();
+    element.surface.getBoundingClientRect=()=>({left:300,top:60,width:220,height:165});
+    motion.captureLayout();
+    assert.equal(motion.plugin(element,'remain',before,after).frames[0].transform,'translate(40px, 0px) scale(1, 1)');
+});
+
+test('drag-start measurement overrides coordinates cached during a scaled group opening',()=>{
+    const element=card(),motion=gridMotion({children:[element]},{Effect});
+    element.surface.getBoundingClientRect=()=>({...after});
+    motion.captureLayout();
+    const effect=motion.plugin(element,'remain',{left:10,top:10,width:70,height:40},after);
+    assert.equal(effect.timing.duration,0);assert.equal(effect.frames[0].transform,'translate(0px, 0px) scale(1, 1)');
 });

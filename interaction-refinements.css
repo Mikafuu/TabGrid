@@ -1,0 +1,222 @@
+/* State feedback is separate from the owners of card and disclosure movement. */
+@property --liquid-surface-tint {
+    syntax: '<color>';
+    inherits: true;
+    initial-value: transparent;
+}
+:is(button,input,select,textarea,.filter-picker,.filter-picker-option,.card-surface,.drop-target,.theme-choice,.style-choice,.liquid-control-shell) {
+    transition: background-color var(--motion-duration,180ms) ease,
+        border-color var(--motion-duration,180ms) ease,
+        color var(--motion-duration,180ms) ease,
+        box-shadow var(--motion-duration,180ms) ease,
+        filter var(--motion-duration,180ms) ease,
+        --liquid-surface-tint var(--motion-duration,180ms) ease;
+}
+html[data-visual-style] .filter-disclosure > .filter-toggle { border-radius: var(--material-control-radius,8px); padding-inline: 14px; }
+html[data-visual-style] .theme-family > .tint-toggle { padding-inline: 16px; }
+
+/* One combobox surface, including its arrow. */
+html[data-visual-style] .filter-picker > :is(input,.filter-expand),
+html[data-visual-style] .filter-picker > :is(input,.filter-expand):is(:hover,:focus,:active) {
+    background: transparent !important; background-image: none !important;
+    border: 0; box-shadow: none !important; outline: none; border-radius: 0;
+}
+html[data-visual-style] .filter-picker { overflow: hidden; }
+
+/* Full viewport lens; keep title and actions aligned with the content below. */
+html[data-visual-style=glass] .header-surface {
+    box-sizing: border-box; width: 100vw; margin-inline: calc(50% - 50vw);
+    padding-inline: max(clamp(20px,4vw,64px),calc((100vw - 1536px)/2 + 64px));
+    border-radius: 20px;
+}
+@media (max-width:900px) { html[data-visual-style=glass] .header-surface { padding-inline: 24px; } }
+@media (max-width:650px) { html[data-visual-style=glass] .header-surface { padding-inline: 18px; } }
+html[data-visual-style=glass] .group-color-options input[type=radio],
+html[data-visual-style=glass] .group-color-options input[type=radio]:is(:hover,:focus,:active,:checked) {
+    background: var(--dot) !important; background-clip: padding-box !important;
+    box-shadow: none !important; border-color: transparent;
+}
+html[data-visual-style=glass] .card .card-open,
+html[data-visual-style=glass] .card .card-open:is(:hover,:focus,:active,[aria-pressed=true]) {
+    background: transparent !important; box-shadow: none !important;
+}
+html[data-visual-style=glass] .card:is(:hover,.selected,.menu-active) > .card-surface[data-glass-nested] {
+    background: var(--liquid-surface-tint) !important;
+}
+html[data-visual-style=glass] .drop-target {
+    background: color-mix(in srgb,var(--surface) 16%,transparent);
+    border-color: color-mix(in srgb,var(--text) 18%,transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb,var(--surface) 40%,transparent);
+}
+html[data-visual-style=glass] .drop-target.group-drop-target {
+    background: color-mix(in srgb,var(--group-color) 24%,transparent);
+}
+html[data-visual-style=glass] #status:not(:empty) {
+    background: color-mix(in srgb,var(--surface) 72%,transparent);
+    backdrop-filter: blur(8px) saturate(1.15);
+    border: 1px solid color-mix(in srgb,var(--surface) 65%,var(--line));
+    border-radius: 12px; box-shadow: var(--soft-shadow);
+}
+/* Closing a disclosure must not leave a keyboard-focus fill behind. */
+html[data-visual-style=glass] .filter-disclosure > .filter-toggle[aria-expanded=false]:not(:hover):not(:active) {
+    background-color: var(--liquid-control-tint) !important;
+    --liquid-surface-tint: color-mix(in srgb,var(--surface) 22%,transparent);
+    box-shadow: inset 0 1px 0 color-mix(in srgb,var(--surface) 24%,transparent) !important;
+}
+html[data-visual-style=glass] .filter-disclosure > .filter-toggle.filter-glass-ready[aria-expanded=false]:not(:hover):not(:active) { background: transparent !important; }
+html[data-color-mode=dark][data-visual-style=glass] .filter-disclosure > .filter-toggle[aria-expanded=false]:not(:hover):not(:active) {
+    --liquid-surface-tint: color-mix(in srgb,var(--surface) 66%,transparent);
+}
+html[data-visual-style=flat] .sources button:hover:not(:disabled) { background: var(--surface); color: var(--text); }
+
+/* Requested grid focus treatment; settings, menus and dialog forms retain theirs. */
+html body:not(.root-selection-active) :is(.page-header,.page-controls,#tab-content) :focus-visible,
+html body:not(.group-selection-active) #group-dialog :is(.group-header,.group-content) :focus-visible {
+    outline: none !important;
+}
+html body:not(.root-selection-active) .page-controls .filter-picker:focus-within,
+html body:not(.group-selection-active) #group-dialog .filter-picker:focus-within { outline: none !important; }
+@media (prefers-reduced-motion: reduce) {
+    *,*::before,*::after { transition: none !important; }
+}
+html.motion-off *,html.motion-off *::before,html.motion-off *::after { transition: none !important; }
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+    html[data-visual-style=glass] #status:not(:empty) { background: var(--surface); backdrop-filter: none; }
+}
+
+/* Keep destructive actions red at rest as well as on hover. */
+html[data-visual-style] :is(#context-menu,#context-submenu,#page-menu) button.danger,
+html[data-visual-style] :is(#context-menu,#context-submenu,#page-menu) button.danger:is(:hover,:focus-visible,:active) { color: var(--danger) !important; }
+html[data-visual-style=glass] .settings-search-results { background: color-mix(in srgb,var(--surface) 35%,transparent); border-color: color-mix(in srgb,var(--text) 18%,transparent); }
+html[data-visual-style] .settings-search-results button { border-radius: 8px; }
+html[data-visual-style=glass] .speed-options label { background: var(--liquid-control-tint); border-color: color-mix(in srgb,var(--text) 18%,transparent); box-shadow: inset 0 1px 0 color-mix(in srgb,var(--surface) 35%,transparent); }
+html[data-visual-style=glass] .speed-options label:hover { background: var(--liquid-hover-fill); }
+html[data-visual-style=glass] .speed-options label:has(:checked) { background: var(--liquid-pressed-fill); border-color: var(--accent); }
+.speed-options label { transition: background-color var(--motion-duration,180ms) ease,border-color var(--motion-duration,180ms) ease; }
+html[data-visual-style]:not([data-visual-style=glass]) .filter-disclosure > .filter-toggle { background: var(--surface); border: 1px solid var(--line); }
+html[data-visual-style]:not([data-visual-style=glass]) .filter-disclosure > .filter-toggle:hover { background: var(--selected); }
+/* Reserve room for selection/focus rings without leaking closed accordion content. */
+.window-content { overflow-clip-margin: 6px; }
+.window-content[data-collapsed] { overflow-clip-margin: 0; }
+/* Native rubber-band scrolling can expose the fixed wallpaper above a short page.
+   Keep the page flush to its top edge, including when it has no scroll range. */
+html { overscroll-behavior-y: none; min-height: 100%; background-color: var(--bg); }
+body { min-height: 100vh; }
+.header-surface { isolation: isolate; }
+
+/* Keep website artwork readable even when its transparent pixels meet dark cards. */
+.card-info .favicon, .group-tile .tile-favicon, .preview-favicon, .card-preview .fallback {
+    background-color: #f5f5f5; border-radius: 4px; padding: 2px; object-fit: contain;
+}
+.card-preview .fallback { padding: 6px; border-radius: 8px; opacity: 1; }
+/* The optical layer belongs to the fixed frame, never its scrolling contents. */
+#context-menu, #context-submenu, #page-menu { overflow: hidden; overscroll-behavior: none; }
+:is(#context-menu, #context-submenu, #page-menu):popover-open { display: flex; flex-direction: column; }
+.menu-scroll { min-height: 0; overflow: auto; overscroll-behavior: none; flex: 1 1 auto; scrollbar-width: thin; }
+.setting-hint, .style-battery-tip { color: var(--muted); font-size: .875rem; line-height: 1.5; }
+
+/* Translated cards must not widen the page or sit beneath their neighbors. */
+html.card-swipe-active, html.card-swipe-active body { overflow-x: clip; overscroll-behavior-x: none; }
+.window-content:not([data-collapsed]):has(.card[data-swipe]) { overflow: visible; }
+.card[data-swipe] { position: relative; z-index: 50; }
+.card[data-swipe] > .card-surface { transition: none; }
+
+/* The target's stationary slot owns the outline; only its surface shrinks. */
+.card[data-group-drop]::before { content: ''; position: absolute; inset: 0; border-radius: inherit; outline: 3px solid var(--accent); outline-offset: 3px; pointer-events: none; }
+.card[data-group-drop=ready] > .card-surface { scale: .9; background-color: var(--selected); }
+.card[data-drag-lift] > .card-surface { scale: .94; }
+/* The bottom removal area is visible only while dragging inside a group. */
+.group-ungroup-bar { position: absolute; z-index: 25; bottom: 0; left: 0; right: 0; min-height: 64px; padding: 18px 24px; box-sizing: border-box; display: grid; place-items: center; background: var(--surface); color: var(--text); border-top: 1px solid var(--line); pointer-events: none; transition: background-color 150ms, color 150ms; }
+.group-ungroup-bar[hidden] { display: none; }
+.group-ungroup-bar[data-ready] { background: var(--selected); color: var(--accent); border-color: var(--accent); }
+html[data-visual-style=glass] .group-ungroup-bar {
+    background: var(--glass-sheen),color-mix(in srgb,var(--surface) 58%,transparent);
+    border-color: var(--glass-edge); box-shadow: inset 0 1px 0 var(--glass-light);
+    backdrop-filter: blur(12px) saturate(1.35);
+}
+html[data-visual-style=glass] .group-ungroup-bar[data-ready] {
+    background: var(--glass-sheen),color-mix(in srgb,var(--selected) 64%,transparent);
+    border-color: color-mix(in srgb,var(--accent) 65%,var(--glass-edge));
+}
+@media (prefers-reduced-motion: reduce) { .group-ungroup-bar { transition: none; } }
+.drag-action-tip { position: fixed; z-index: 2147483647; bottom: 24px; left: 50%; transform: translateX(-50%); max-width: calc(100vw - 32px); padding: 10px 16px; border-radius: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--line); box-shadow: 0 3px 16px #0002; pointer-events: none; }
+body:has(#group-dialog[open]) > .drag-action-tip { display: none; }
+
+/* Compact settings help remains readable in every surface treatment. */
+.settings-help-anchor { display: inline-flex; align-items: center; gap: 4px; }
+.theme-gallery > .appearance-current { margin: 0 0 16px; padding-inline-start: 12px; }
+html[data-visual-style] #settings-dialog .settings-help-button {
+    display: inline-flex; vertical-align: middle; align-items: center; justify-content: center;
+    width: 18px; height: 18px; min-width: 18px; min-height: 18px; padding: 2px; margin: 0; flex: none;
+    border: 0; border-radius: 50%; background: transparent; color: var(--muted);
+    box-shadow: none; transform: none; font: inherit; cursor: help;
+}
+.settings-help-button > span { display: grid; place-items: center; width: 12px; height: 12px; border: 1px solid currentColor; border-radius: 50%; font: 600 9px/1 system-ui; }
+html[data-visual-style] #settings-dialog .settings-help-button:hover { color: var(--accent); background: var(--selected); }
+html[data-visual-style] #settings-dialog .settings-help-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+html[data-visual-style] #settings-dialog .settings-help-button[hidden] { display: none; }
+html[data-visual-style] #settings-dialog .settings-help-tip {
+    position: fixed; inset: auto; margin: 0; padding: 12px 14px; box-sizing: border-box;
+    width: max-content; max-width: min(340px,calc(100vw - 16px)); max-height: calc(100dvh - 16px); overflow: auto;
+    color: var(--text); background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    box-shadow: var(--soft-shadow); font: 400 13px/1.55 var(--font,system-ui); text-align: left;
+}
+html[data-visual-style=flat] #settings-dialog .settings-help-tip { border-radius: 6px; box-shadow: none; }
+html[data-visual-style=glass] #settings-dialog .settings-help-tip {
+    background: color-mix(in srgb,var(--surface) 86%,transparent); backdrop-filter: blur(12px) saturate(1.15);
+    border-color: color-mix(in srgb,var(--surface) 65%,var(--line)); border-radius: 14px;
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active) {
+    html[data-visual-style=glass] #settings-dialog .settings-help-tip { background: var(--surface); backdrop-filter: none; }
+}
+
+#settings-panel-appearance > h3 { margin-bottom: 16px; }
+#settings-panel-appearance > .style-gallery { margin-top: 0; }
+#settings-panel-appearance > .style-gallery > legend { margin-bottom: 16px; }
+/* Preserve the tray's original .78 grouping scale, independently of drag lift. */
+.sortable-fallback[data-drag-lift][data-drop-feedback=group] > .card-surface { scale: 1; }
+
+/* Source-card group morph: retain exit paint, never exit interaction. */
+html body #group-dialog {
+    transition: display var(--group-exit-duration,324ms) allow-discrete,
+        overlay var(--group-exit-duration,324ms) allow-discrete;
+}
+html body #group-dialog[data-group-morph] {
+    display: flex; flex-direction: column; transform-origin: center;
+}
+html body #group-dialog[data-group-morph] :is(.drop-targets,.group-feedback,.group-ungroup-bar,.drag-action-tip) { visibility: hidden; }
+html body #group-dialog:not([open]) { pointer-events: none; opacity: 0; }
+html.motion-off body #group-dialog, html body.dragging #group-dialog { transition: none; }
+
+/* Group status/help text belongs to the panel, without a raised toast surface. */
+html body #group-dialog :is(.group-feedback,.drag-tip,.drag-action-tip) {
+    background: none; border: 0; box-shadow: none; backdrop-filter: none;
+}
+html body #group-dialog[data-group-morph] > :is(.group-header,.group-content) { pointer-events: none; }
+
+/* The panel supplies the single outside edge during a group morph. */
+html body .group-morph-preview {
+    border: 0 !important; outline: none !important; border-radius: 0 !important;
+    box-shadow: none !important;
+}
+html body .group-morph-preview::after, html body .group-morph-preview::before { display: none !important; }
+html body #group-dialog::backdrop {
+    transition: display var(--group-morph-duration,260ms) allow-discrete,
+        overlay var(--group-morph-duration,260ms) allow-discrete,
+        background-color var(--group-morph-duration,260ms) ease,
+        backdrop-filter var(--group-morph-duration,260ms) ease;
+}
+html body #group-dialog:is([data-group-morph=closing],:not([open]))::backdrop {
+    background-color: transparent; backdrop-filter: blur(0px);
+}
+@starting-style {
+    html body #group-dialog[open]::backdrop { background-color: transparent; backdrop-filter: blur(0px); }
+}
+html body #group-dialog[data-group-handoff], html body #group-dialog[data-group-handoff]::backdrop { transition: none; }
+html.motion-off body #group-dialog::backdrop { transition: none; }
+html body .group-exit-copy { transition: none; }
+html body .group-exit-copy :is(.group-feedback,.drag-tip) { background: none; border: 0; box-shadow: none; }
+@media (prefers-reduced-transparency: reduce) {
+    html[data-visual-style=glass] .group-ungroup-bar { background: var(--surface); backdrop-filter: none; }
+    html[data-visual-style=glass] .group-ungroup-bar[data-ready] { background: var(--selected); }
+}

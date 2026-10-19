@@ -1,3 +1,13 @@
+import { createDragGrouping } from './lib/drag-grouping.mjs';
+import { mountCardSwipe, mouseSwipeEnabled } from './lib/card-swipe.mjs';
+import { createCategoryTransition } from './lib/category-transition.mjs';
+import { mountCategorySwipe } from './lib/category-swipe.mjs';
+import { mountWallpaperContrast } from './lib/background-contrast.mjs';
+import { mountBackground, applyBackgroundAdjustments } from './lib/background-image.mjs';
+import { mountGlassSurfaces } from './lib/glass-surfaces.mjs';
+import { mountLiquidInteractions } from './lib/liquid-motion.mjs';
+import { mountGlassTabs } from './lib/glass-tabs.mjs';
+import { createGroupTransition, GROUP_MORPH_MS } from './lib/group-transition.mjs';
 import { createDropFeedback } from './lib/drop-feedback.mjs';
 import { bindSubmenuHover } from './lib/tab-menu.mjs';
 import { groupColors as colors, groupLabel, groupColorPicker } from './lib/group-presentation.mjs';
@@ -29,10 +39,19 @@ const gridUrl = chrome.runtime.getURL('grid.html');
 const state = { tabs: [], groups: [], screenshots: {}, recent: [], recentError: '', view: 'open', groupId: null, windowId: null, busy: false, dragging: false, revision: 0, returned: {}, lastOpened: {}, pointerDown: false, windowOrder: [] };
 let preferences = structuredClone(DEFAULTS), features, settingsPanel, protectedGroups = [];
 const motionMedia = matchMedia('(prefers-reduced-motion: reduce)');
-const materialMotion = createMaterialMotion({ allowed: () => materialMotionAllowed(preferences.visualStyle, preferences.motion, motionMedia.matches), timing: () => materialTiming(preferences.visualStyle, preferences.animationSpeed) });
-document.querySelectorAll('dialog,[popover]').forEach(surface => materialMotion.native(surface));
+const materialMotion = createMaterialMotion({ liquid: () => preferences.visualStyle === 'glass', allowed: () => materialMotionAllowed(preferences.visualStyle, preferences.motion, motionMedia.matches), timing: () => materialTiming(preferences.visualStyle, preferences.animationSpeed) });
+let groupMotionId=null, handoffPreview=null;
+const groupTransition=createGroupTransition({
+    dialog:$('group-dialog'),motion:materialMotion,
+    source:()=>document.querySelector(`.grid-container[data-scope="root"] > .card[data-key="group:${groupMotionId}"]`),
+    allowed:()=>materialMotionAllowed(preferences.visualStyle,preferences.motion,motionMedia.matches),
+    speed:()=>({efficient:.65,standard:1,smooth:1.6}[preferences.animationSpeed]||1),
+    dragging:()=>state.dragging
+});
+document.querySelectorAll('dialog,[popover]').forEach(surface => materialMotion.native(surface,surface.id==='group-dialog'?{transition:groupTransition.toggle}:{}));
 motionMedia.addEventListener('change', () => {
-    materialMotion.sync();
+    materialMotion.sync(); groupTransition.sync();
+    cardSwipe.cancel();
     if (motionMedia.matches) document.querySelectorAll('.card-surface').forEach(surface => surface.getAnimations().forEach(animation => animation.cancel()));
 });
 const selections = { root: new Set(), group: new Set() };
@@ -154,6 +173,7 @@ function syncSelection(layout=true) {
         const keys = selections[scope];
         const hasSelection = keys.size > 0;
         const active = selecting[scope] || hasSelection;
+        document.body.classList.toggle(`${scope}-selection-active`,active);
         const bar = $(`${scope}-toolbar`);
         bar.hidden = scope === 'group' && !active;
         bar.querySelector('[data-role=toggle]').textContent = active ? 'Done' : 'Select';
@@ -215,7 +235,7 @@ function createCard(item, scope) {
         card.style.setProperty('--group-color', colors[data.color]);
         preview.classList.add('group-preview');
         preview.setAttribute('aria-hidden', 'true');
-        for (const tile of groupPreviewTiles(item.members)) {
+        for (const tile of groupPreviewTiles(item.members,handoffPreview?.tabId)) {
             const cell = el('div', 'group-tile');
             if (tile.tab) {
                 const screenshot = state.screenshots[`screenshot_${tile.tab.id}`];
@@ -262,7 +282,7 @@ function paintCards(container, items, scope) {
         child.inert = true; child.setAttribute('aria-hidden', 'true'); child.remove();
     }
     items.forEach((item, index) => {
-        const signature = JSON.stringify([preferences.showAddress, preferences.showLastUsed, preferences.showWindow, preferences.showGroup, state.windowOrder, Boolean($(scope === 'group' ? 'group-search' : 'search-input').value.trim()), $('opt-nested').checked, Boolean(features?.hasFilters(scope)), item.tab || item.group, item.members?.map(t => [t.id, t.index, t.title, t.url, state.screenshots[`screenshot_${t.id}`]]), state.screenshots[`screenshot_${item.tab?.id}`], $('opt-all-windows').checked]);
+        const signature = JSON.stringify([preferences.showAddress, preferences.showLastUsed, preferences.showWindow, preferences.showGroup, state.windowOrder, Boolean($(scope === 'group' ? 'group-search' : 'search-input').value.trim()), $('opt-nested').checked, Boolean(features?.hasFilters(scope)), item.tab ? {...item.tab, index: undefined} : item.group, item.members?.map(t => [t.id, t.title, t.url, state.screenshots[`screenshot_${t.id}`]]), state.screenshots[`screenshot_${item.tab?.id}`], $('opt-all-windows').checked]);
         let card = old.get(item.key);
         if (!card) card = createCard(item, scope);
         else if (card.dataset.signature !== signature) {
@@ -272,6 +292,8 @@ function paintCards(container, items, scope) {
             card.querySelector('.card-surface').replaceChildren(...next.querySelector('.card-surface').childNodes);
             card.style.cssText = next.style.cssText;
         }
+        // Native positions change after a close without changing the card artwork.
+        Object.assign(card.itemModel, item);
         card.dataset.signature = signature;
         card.classList.toggle('last-opened', isLastOpened(item, state.lastOpened));
         const open = card.querySelector('.card-open');
@@ -295,7 +317,7 @@ const drawers = Object.fromEntries(['root', 'group'].map(scope => [scope, mountG
 function renderDropTargets() {
     for (const scope of ['root', 'group']) {
         const tray = $(`${scope}-drop-targets`);
-        const enabled = preferences.dropGroups && (scope === 'root' ? state.view !== 'recent' : state.groupId !== null);
+        const enabled = preferences.dropGroups && !document.body.classList.contains('dragging-pinned') && (scope === 'root' ? state.view !== 'recent' : state.groupId !== null);
         tray.hidden = !enabled;
         if (!enabled) { drawers[scope].collapse(); continue; }
         const windowId = scope === 'group' ? currentGroup()?.windowId : state.windowId;
@@ -311,6 +333,7 @@ function renderDropTargets() {
                 const action = button(label, async () => {
                     const ids = tabIds(scope);
                     if (!ids.length) { announce('Select tabs, then choose a group target, or drag a tab card here.'); return; }
+                    if (state.tabs.some(tab => ids.includes(tab.id) && tab.pinned)) { announce('Unpin selected tabs before grouping them.', true); return; }
                     if(destination==='new')createGroupDialog(ids,windowId);
                     else await run(() => rpc('dropIntoGroup', ids, destination, destinationGroup?.windowId || windowId), destination === 'ungroup' ? 'Tabs ungrouped.' : 'Tabs grouped.');
                     drawers[scope].collapse();
@@ -327,8 +350,27 @@ function renderDropTargets() {
         drawers[scope].sync();
     }
 }
+// Empty pinned destinations are useful only while a pinned tab is being moved.
+function syncPinnedDropAreas(showEmpty) {
+    for (const view of windowViews.values()) if (view.pinnedArea.dataset.empty === 'true') view.pinnedArea.hidden = !showEmpty;
+}
 function scopeGrids(scope) {
     return [...document.querySelectorAll('.grid-container[data-scope]')].filter(c => c.dataset.scope === scope && sortables.has(c) && !c.closest('[hidden],[inert]'));
+}
+const dragGrouping=createDragGrouping({enabled:()=>preferences.dragGrouping,canReorder:card=>canReorder(card.parentElement),dialog:$('group-dialog'),feedback:dropFeedback,handoff(card,groupId){
+    handoffPreview={tabId:card.itemModel.tab.id,groupId};updateHandoffPreview(groupId);
+    // Move only Sortable's fallback; its live slot remains owned by Sortable.
+    const ghost=Sortable.ghost;if(ghost){const r=ghost.getBoundingClientRect(),matrix=new DOMMatrix(getComputedStyle(ghost).transform);document.body.append(ghost);Object.assign(ghost.style,{position:'fixed',left:`${r.left-matrix.e}px`,top:`${r.top-matrix.f}px`});}
+    groupTransition.handoff();
+}});
+function clearHandoffPreview(){
+    if(handoffPreview){const {groupId}=handoffPreview;handoffPreview=null;updateHandoffPreview(groupId);}
+}
+function updateHandoffPreview(groupId){
+    const card=document.querySelector(`.grid-container[data-scope="root"] > .card[data-key="group:${groupId}"]`);
+    if(!card)return;
+    const next=createCard(card.itemModel,'root');
+    card.querySelector('.group-preview').replaceChildren(...next.querySelector('.group-preview').childNodes);
 }
 function registerGrid(container, scope) {
     container.dataset.scope = scope;
@@ -336,15 +378,20 @@ function registerGrid(container, scope) {
     const motion = gridMotion(container, { reducedMotion: () => preferences.motion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches, layoutTiming: () => materialTiming(preferences.visualStyle, preferences.animationSpeed), dragDuration: () => ({efficient:80,standard:120,smooth:200})[preferences.animationSpeed] });
     animations.set(container, autoAnimate(container, motion.plugin));motionViews.set(container,motion);
     sortables.set(container, Sortable.create(container, {
-        group: { name: 'tabgrid', pull: true, put(to,from,card){return to.el.dataset.scope===from.el.dataset.scope&&canDrag(to.el)&&gridPinned(to.el)===Boolean(card.itemModel?.tab?.pinned)&&!(to.el===$('group-grid')&&card.dataset.kind==='group');} },
+        group: { name: 'tabgrid', pull: true, put(to,from,card){return (to.el.dataset.scope===from.el.dataset.scope||(dragGrouping.handedOff()&&to.el.dataset.scope==='root'))&&canDrag(to.el)&&gridPinned(to.el)===Boolean(card.itemModel?.tab?.pinned)&&!(to.el===$('group-grid')&&card.dataset.kind==='group');} },
         sort:canReorder(container),
         animation: 0, forceFallback: true, fallbackOnBody: scope !== 'group', supportPointer: false, draggable: '.card[data-key]',
-        fallbackTolerance: 6, delay: 250, delayOnTouchOnly: true, touchStartThreshold: 2,
+        fallbackTolerance: 6, delay: 250, delayOnTouchOnly: !mouseSwipeEnabled(preferences), touchStartThreshold: 2,
         filter(event) { return Boolean(event.target.closest('.card-menu, .card-close, input')) || !canDrag(container); },
         preventOnFilter: false, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', dragClass: 'sortable-drag',
         onMove(evt) {
+            const direction=!evt.to.dataset.destination?dragGrouping.sortMove(evt):undefined;
+            if(direction===false)return false;
             if (!evt.to.dataset.destination && drawers[scope].isNear(evt.originalEvent?.clientX,evt.originalEvent?.clientY)) return false;
-            dropFeedback.destination(evt.to.dataset.destination); motionViews.get(evt.from)?.capture(); if(evt.to!==evt.from)motionViews.get(evt.to)?.capture(); },
+            dropFeedback.destination(evt.to.dataset.destination); motionViews.get(evt.from)?.capture(); if(evt.to!==evt.from)motionViews.get(evt.to)?.capture(); return direction; },
+        onChange(){dragGrouping.reordered();},
+        onChoose(evt) { dropFeedback.choose(evt.item,mouseSwipeEnabled(preferences)); },
+        onUnchoose() { dropFeedback.unchoose(); },
         onClone(evt) {
             // Sortable's temporary copy is not a live card, even if auto-animate
             // briefly retains it to finish a removal.
@@ -352,16 +399,36 @@ function registerGrid(container, scope) {
             evt.clone.inert = true; evt.clone.setAttribute('aria-hidden', 'true');
         },
         onStart(evt) {
+            // Native group entry changes the coordinate space. Refresh the
+            // neighbor baselines before Sortable's clone mutation is observed.
+            motion.captureLayout();
             closeMenu();
             state.dragging = true; document.body.classList.add('dragging');
             document.body.classList.toggle('dragging-group', evt.item.dataset.kind === 'group');
-            dropFeedback.start(evt.item.dataset.kind);
+            const pinned = Boolean(evt.item.itemModel?.tab?.pinned);
+            document.body.classList.toggle('dragging-pinned', pinned);
+            syncPinnedDropAreas(pinned);
+            renderDropTargets();
+            dropFeedback.start(pinned ? null : evt.item.dataset.kind,mouseSwipeEnabled(preferences));
+            dragGrouping.start(evt.item,scope,state.groupId);
             Object.values(drawers).forEach(drawer => drawer.sync());
         },
         async onEnd(evt) {
+            try {
+            const direct=dragGrouping.finish(evt.originalEvent);
             dropFeedback.reset();
             Object.values(drawers).forEach(drawer => drawer.collapse());
-            state.dragging = false; document.body.classList.remove('dragging', 'dragging-group'); state.dragEnded = Date.now();
+            state.dragging = false; document.body.classList.remove('dragging', 'dragging-group', 'dragging-pinned'); state.dragEnded = Date.now();
+            syncPinnedDropAreas(false);
+            renderDropTargets();
+            if(direct?.cancelled){await refresh();clearHandoffPreview();if(direct.handedOff&&direct.groupId!==null)openGroup(direct.groupId);return;}
+            if(!evt.to.dataset.destination&&(direct?.target||(direct?.ungroup&&!(direct.handedOff&&evt.to!==evt.from)))){
+                const item=evt.item.itemModel,ids=item.members?.map(t=>t.id)||[item.tab.id];
+                const target=direct.target;
+                if(target?.destination==='new'){createGroupDialog([...new Set([...ids,target.targetId])],target.windowId);await refresh();}
+                else await run(()=>rpc('dropIntoGroup',ids,target?.destination??'ungroup',target?.windowId??(item.tab||item.group).windowId),target?'Tabs grouped.':'Tab ungrouped.');
+                return;
+            }
             if (evt.to.dataset.destination) {
                 const raw = evt.to.dataset.destination;
                 try {
@@ -380,6 +447,7 @@ function registerGrid(container, scope) {
             if(target===source&&evt.oldIndex===evt.newIndex){syncSelection();if(refreshPending)scheduleRefresh();return;}
             await run(async()=>{
                 if(target!==source){
+                    if(direct?.handedOff)await rpc('dropIntoGroup',[evt.item.itemModel.tab.id],'ungroup',gridWindow(target));
                     const cards=[...target.children].filter(c=>c.dataset.key&&c.itemModel),index=cards.indexOf(evt.item),following=cards[index+1],previous=cards[index-1];
                     const anchor=targetCanReorder?following?.dataset.key||previous?.dataset.key||null:null;
                     return rpc('dropAt',{keys:[evt.item.dataset.key],windowId:gridWindow(target),pinned:gridPinned(target),anchor,after:!following&&Boolean(previous)});
@@ -396,6 +464,9 @@ function registerGrid(container, scope) {
             });
             animations.get(container).enable();
             if (refreshPending) scheduleRefresh();
+            } finally {
+                clearHandoffPreview();
+            }
         }
     }));
 }
@@ -408,7 +479,10 @@ function unregisterGrid(container) {
 }
 for (const container of [$('grid'), $('pinned-grid'), $('group-grid')]) registerGrid(container, container === $('group-grid') ? 'group' : 'root');
 
-const collapsedWindows = new Set();
+const cardSwipe=mountCardSwipe({getPrefs:()=>preferences,available:card=>!state.busy&&!state.dragging&&state.view==='open'&&!selecting[card.closest('.grid-container')?.dataset.scope||'root'],close:item=>closeTabs(item.members?.map(t=>t.id)||[item.tab.id]),motion:materialMotion});
+
+const collapsedWindows = new Set((()=>{try{const saved=JSON.parse(sessionStorage.getItem('tabgridCollapsedWindows')||'[]');return Array.isArray(saved)?saved.filter(Number.isInteger):[];}catch{return [];}})());
+function rememberWindowExpansion(){try{sessionStorage.setItem('tabgridCollapsedWindows',JSON.stringify([...collapsedWindows]));}catch{/* Session persistence may be unavailable. */}}
 function paintWindowSections(items) {
     const sections = $('opt-all-windows').checked ? windowSections(items, state.windowId, state.windowOrder) : windowSections(items,state.windowId);
     const ids = new Set(sections.map(s => s.windowId));
@@ -425,7 +499,7 @@ function paintWindowSections(items) {
             const pinned = el('div', 'grid-container'); pinned.id = `window-${windowId}-pinned`;pinned.dataset.windowId=windowId;pinned.dataset.pinned='true';
             const regular = el('div', 'grid-container'); regular.id = `window-${windowId}-grid`;regular.dataset.windowId=windowId;
             pinnedArea.append(pinned); const content=el('div','window-content'); content.id=`window-${windowId}-content`; content.append(pinnedArea,regular); section.append(heading,content); title.setAttribute('aria-controls',content.id);
-            title.onclick=()=>{if(collapsedWindows.has(windowId))collapsedWindows.delete(windowId);else collapsedWindows.add(windowId);render({disclosure:true});title.focus({preventScroll:true});};
+            title.onclick=()=>{if(collapsedWindows.has(windowId))collapsedWindows.delete(windowId);else collapsedWindows.add(windowId);rememberWindowExpansion();render({disclosure:true});title.focus({preventScroll:true});};
             view = { section, title, content, pinnedArea, pinned, regular }; windowViews.set(windowId, view);
             $('window-sections').append(section); registerGrid(pinned, 'root'); registerGrid(regular, 'root');
         }
@@ -436,7 +510,7 @@ function paintWindowSections(items) {
         const count = new Set(members.flatMap(i => i.members?.map(t => t.id) || [i.tab.id])).size;
         view.title.textContent = `${numberedWindow(windowId,state.windowOrder)}${windowId===state.windowId?' · This window':''} · ${count} ${count===1?'tab':'tabs'}`;
         const pinned = members.filter(i => i.tab?.pinned), regular = members.filter(i => !i.tab?.pinned);
-        paintCards(view.pinned, pinned, 'root'); paintCards(view.regular, regular, 'root'); view.pinnedArea.hidden = !pinned.length && !state.tabs.some(t=>t.pinned);
+        paintCards(view.pinned, pinned, 'root'); paintCards(view.regular, regular, 'root'); view.pinnedArea.dataset.empty = String(!pinned.length); view.pinnedArea.hidden = !pinned.length;
         $('window-sections').append(view.section); if(!collapsed)ordered.push(...pinned, ...regular);
 
     }
@@ -450,7 +524,7 @@ function render(options) {
     const returningToTabs = renderedView === 'recent' && state.view !== 'recent';
     if(!returningToTabs&&!disclosure)captureGridLayout();
     renderedView=state.view;
-    const finishNavigation=materialMotion.capture([document.querySelector('.sources')]);
+    const finishNavigation=preferences.visualStyle==='glass'?()=>{}:materialMotion.capture([document.querySelector('.sources')]);
     features?.sync();
     const token = focusToken();
     const idleEnabled = !privateMode && preferences.inactiveDays > 0;
@@ -477,7 +551,7 @@ function render(options) {
     $('open-empty').textContent = query ? 'No open tabs match your search.' : 'No tabs in this view. Open a new tab to get started.';
     if (state.groupId !== null) {
         const group = currentGroup();
-        if (!group) $('group-dialog').close();
+        if (!group || !state.tabs.some(tab=>tab.groupId===group.id)) $('group-dialog').close();
         else {
             $('group-heading').replaceChildren(groupLabel(group),document.createTextNode(` (${state.tabs.filter(t => t.groupId === group.id).length})`));
             const groupItems = openItems(state.tabs, state.groups, { windowId: group.windowId, groupId: group.id, query: $('group-search').value, sort: $('sort-select').value, preferences, filters: features?.filters.group });
@@ -520,11 +594,9 @@ async function refresh() {
     try {
         const [tabs, groups, windowOrder] = await Promise.all([chrome.tabs.query({}), chrome.tabGroups.query({}), rpc('windowOrder')]);
         const safeTabs = tabs.filter(t => Boolean(t.incognito) === privateMode && !isGridUrl(t.url || t.pendingUrl, gridUrl));
-        const [screenshots, lastOpened] = await Promise.all([privateMode ? {} : chrome.storage.local.get(safeTabs.map(t => `screenshot_${t.id}`)), rpc('lastOpenedSnapshot')]);
-        if (!privateMode) {
-            state.returned = await rpc('activitySnapshot');
-        }
+        const [screenshots, lastOpened, returned] = await Promise.all([privateMode ? {} : chrome.storage.local.get(safeTabs.map(t => `screenshot_${t.id}`)), rpc('lastOpenedSnapshot'), privateMode ? state.returned : rpc('activitySnapshot')]);
         if (revision !== state.revision || state.pointerDown || state.dragging || state.busy) { refreshPending = true; return; }
+        state.returned = returned;
         state.windowOrder = windowOrder || [...new Set(safeTabs.map(t=>t.windowId))]; state.lastOpened = lastOpened || {}; state.tabs = safeTabs; state.groups = groups; state.screenshots = screenshots; refreshPending = false; render();
     } catch (error) { announce(`Could not refresh tabs: ${error.message}`, true); }
 }
@@ -625,7 +697,7 @@ function createGroupDialog(ids = null, windowId = null) {
 }
 function openGroup(id) {
     features?.capture('root');
-    groupOpener = document.activeElement;
+    groupOpener = document.activeElement; groupMotionId=id;
     state.groupId = id; selections.group.clear(); selecting.group = false; $('group-search').value = '';
     const motion=motionViews.get($('group-grid')); motion?.beginReveal();
     render(); if (!$('group-dialog').open) $('group-dialog').showModal(); syncModal();
@@ -647,24 +719,29 @@ window.addEventListener('resize', closeMenu);
 $('context-menu').addEventListener('beforetoggle', e => { if (e.newState === 'closed') { for(const hover of submenuHovers)hover.reset(); closeSubmenu(); } });
 $('context-menu').addEventListener('toggle', syncModal);
 function closeMenu() { menuOpener?.setAttribute('aria-expanded', 'false'); closeSubmenu(); const menu = $('context-menu'); if (menu.matches(':popover-open')) menu.hidePopover(); syncModal(); }
-function menuDivider(menu) { const d = el('div'); d.setAttribute('role', 'separator'); menu.append(d); }
+function menuContent(menu){let content=menu.querySelector(':scope > .menu-scroll');if(!content){content=el('div','menu-scroll');content.append(...[...menu.childNodes].filter(n=>!n.matches?.('.filter-glass-surface,[data-motion-cue],[popover]')));menu.append(content);}return content;}
+menuContent($('page-menu'));
+function menuDivider(menu) { const d = el('div'); d.setAttribute('role', 'separator'); menuContent(menu).append(d); }
 function menuAction(menu, label, handler, { disabled = false, danger = false } = {}) {
     const b = button(label, () => { closeMenu(); handler(); }, danger ? 'danger' : '');
     b.setAttribute('role', 'menuitem'); b.disabled = state.busy || disabled;
-    if (menu === $('context-menu')) b.addEventListener('pointerenter', closeSubmenu);
-    menu.append(b); return b;
+    if (menu === $('context-menu')) b.addEventListener('pointerenter', () => {if(!submenuHover?.inGrace())closeSubmenu();});
+    menuContent(menu).append(b); return b;
 }
 function menuSubmenu(menu, label, entries, disabled = false) {
     const trigger = button(label, () => {}, 'has-submenu');
     trigger.setAttribute('role', 'menuitem'); trigger.setAttribute('aria-haspopup', 'menu'); trigger.setAttribute('aria-expanded', 'false'); trigger.disabled = state.busy || disabled;
     const hover=bindSubmenuHover(trigger,{
         active:()=>trigger.isConnected&&menu.matches(':popover-open'),
+        submenu:()=>submenuOpener===trigger&&$('context-submenu').matches(':popover-open')?$('context-submenu'):null,
+        blocked:()=>submenuHover!==hover&&submenuHover?.inGrace(),
         contains:node=>trigger.contains(node)||(submenuOpener===trigger&&$('context-submenu').contains(node)),
         open:()=>{submenuHover=hover;openSubmenu(trigger,entries,false);},
         close:()=>{if(submenuOpener===trigger)closeSubmenu();}
     });
+    trigger.addEventListener('keydown',event=>{if(event.key==='ArrowRight'){event.preventDefault();event.stopPropagation();hover.reset();submenuHover=hover;openSubmenu(trigger,entries,true);}});
     submenuHovers.add(hover);
-    menu.append(trigger);
+    menuContent(menu).append(trigger);
 }
 async function windowEntries(ids) {
     const sourceWindows = new Set(state.tabs.filter(t => ids.includes(t.id)).map(t => t.windowId));
@@ -717,7 +794,7 @@ function populateTabActions(menu, ids, scope, item = null, { insideGroup = false
     }
     if (!privateMode && item?.tab && /^https?:/.test(item.tab.url || '')) {
         menuDivider(menu);
-        menu.append(el('div','menu-name','Preview'));
+        menuContent(menu).append(el('div','menu-name','Preview'));
         const excluded = siteMatches(item.tab.url, preferences.previewSites);
         add(excluded ? 'Allow previews for this website' : 'Stop previews for this website', () => run(() => rpc('preview', excluded ? 'allow' : 'exclude', item.tab.id), 'Preview preference updated.'));
         add('Clear this tab’s preview', () => run(() => rpc('preview','clear',item.tab.id), 'Preview cleared.'));
@@ -745,7 +822,7 @@ function prepareMenu(scope, event, key) {
     const menu = $('context-menu');
     ($('group-dialog').open ? $('group-dialog') : document.body).append(menu);
     for(const hover of submenuHovers)hover.reset(); submenuHovers.clear();
-    document.body.append($('context-submenu')); menu.replaceChildren();
+    document.body.append($('context-submenu')); menuContent(menu).replaceChildren();
     return menu;
 }
 containMenuFocus(document, () => {
@@ -760,7 +837,7 @@ containMenuFocus(document, () => {
 function showSelectionMenu(scope, event) {
     const menu = prepareMenu(scope, event); if (!menu) return;
     menu.setAttribute('aria-label', 'Edit selected tabs');
-    const ids = tabIds(scope); menu.append(el('div', 'menu-name', `${ids.length} selected tabs`));
+    const ids = tabIds(scope); menuContent(menu).append(el('div', 'menu-name', `${ids.length} selected tabs`));
     populateTabActions(menu, ids, scope); positionMenu(menu, event);
 }
 function showMenu(item, scope, event, { insideGroup = false } = {}) {
@@ -778,8 +855,8 @@ function showMenu(item, scope, event, { insideGroup = false } = {}) {
             const dot = button('', () => run(async () => { await chrome.tabGroups.update(item.group.id, { color }); palette.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b === dot))); }, 'Group color changed.'));
             dot.style.setProperty('--dot', value); dot.setAttribute('aria-label', color); dot.title = color; dot.setAttribute('role', 'menuitemradio'); dot.setAttribute('aria-checked', String(item.group.color === color)); palette.append(dot);
         }
-        header.append(input, palette); menu.append(header);
-    } else menu.append(el('div', 'menu-name', item.tab.title || item.tab.url || 'Tab'));
+        header.append(input, palette); menuContent(menu).append(header);
+    } else menuContent(menu).append(el('div', 'menu-name', item.tab.title || item.tab.url || 'Tab'));
     populateTabActions(menu, ids, scope, item, { insideGroup }); positionMenu(menu, event);
 }
 function positionMenu(menu, event) {
@@ -803,17 +880,17 @@ let submenuRevision = 0;
 async function openSubmenu(trigger, entries, focus = true) {
     if (submenuOpener === trigger && $('context-submenu').matches(':popover-open')) { if (focus) $('context-submenu').querySelector('button')?.focus(); return; }
     closeSubmenu(); submenuOpener = trigger; const revision = ++submenuRevision;
-    const sub = $('context-submenu'); $('context-menu').append(sub); sub.replaceChildren(); sub.setAttribute('aria-label', trigger.textContent);
-    sub.append(el('div', 'menu-name', 'Loading…')); sub.showPopover(); trigger.setAttribute('aria-expanded', 'true');
+    const sub = $('context-submenu'); $('context-menu').append(sub); menuContent(sub).replaceChildren(); sub.setAttribute('aria-label', trigger.textContent);
+    menuContent(sub).append(el('div', 'menu-name', 'Loading…')); sub.showPopover(); trigger.setAttribute('aria-expanded', 'true');
     const place = () => { const r = trigger.getBoundingClientRect(); sub.style.left = `${Math.max(8, r.right + sub.offsetWidth + 8 < innerWidth ? r.right : r.left - sub.offsetWidth)}px`; sub.style.top = `${Math.max(8, Math.min(r.top, innerHeight - sub.offsetHeight - 8))}px`; };
     place();
     try {
         const values = typeof entries === 'function' ? await entries() : entries;
         if (revision !== submenuRevision || !sub.matches(':popover-open')) return;
-        sub.replaceChildren();
+        menuContent(sub).replaceChildren();
         for (const entry of values) { if (!entry) { menuDivider(sub); continue; } const [label, handler, group] = entry; const action=menuAction(sub,label,handler);if(group)action.replaceChildren(groupLabel(group)); }
         place(); if (focus) sub.querySelector('button')?.focus();
-    } catch (error) { if (revision === submenuRevision && sub.matches(':popover-open')) sub.replaceChildren(el('div', 'menu-name', error.message)); }
+    } catch (error) { if (revision === submenuRevision && sub.matches(':popover-open')) menuContent(sub).replaceChildren(el('div', 'menu-name', error.message)); }
 }
 for(const type of ['pointerout','mouseout'])$('context-submenu').addEventListener(type,event=>submenuHover?.leave(event));
 $('context-submenu').addEventListener('keydown', e => {
@@ -896,13 +973,14 @@ $('action-dialog').addEventListener('pointerdown',e=>{actionBackdropPress=e.butt
 $('action-dialog').addEventListener('pointerup',e=>{if(actionBackdropPress&&actionBackdrop(e)&&!state.busy)$('action-dialog').close();actionBackdropPress=false;});
 $('action-dialog').addEventListener('pointercancel',()=>{actionBackdropPress=false;});
 $('action-cancel').onclick = () => $('action-dialog').close();
-$('group-done').onclick = () => $('group-dialog').close();
+$('group-done').onclick = () => groupTransition.close();
+$('group-dialog').addEventListener('cancel',event=>{event.preventDefault();groupTransition.close();});
 $('group-dialog').addEventListener('close', () => {
     features?.closeGroup();
     const id = state.groupId; state.groupId = null; selections.group.clear(); selecting.group = false;
     syncModal(); closeMenu();
     const opener = scopeGrids('root').flatMap(grid => [...grid.children]).find(c => c.dataset.key === keyFor('group', id))?.querySelector('.card-open');
-    (opener || (groupOpener?.isConnected ? groupOpener : $('search-input'))).focus({ preventScroll: true });
+    if(!state.dragging)(opener || (groupOpener?.isConnected ? groupOpener : $('search-input'))).focus({ preventScroll: true });
 });
 let backdropPress = false;
 const onBackdrop = e => {
@@ -910,7 +988,7 @@ const onBackdrop = e => {
     return e.target === $('group-dialog') && (e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom);
 };
 $('group-dialog').addEventListener('pointerdown', e => { backdropPress = e.button === 0 && onBackdrop(e); });
-$('group-dialog').addEventListener('pointerup', e => { if (backdropPress && onBackdrop(e)) $('group-dialog').close(); backdropPress = false; });
+$('group-dialog').addEventListener('pointerup', e => { if (backdropPress && onBackdrop(e)) groupTransition.close(); backdropPress = false; });
 $('group-dialog').addEventListener('pointercancel', () => { backdropPress = false; });
 $('group-new').onclick = () => newTab(state.groupId);
 $('group-menu-btn').onclick = event => {
@@ -973,12 +1051,20 @@ $('search-input').addEventListener('input', () => {
 });
 for (const [id,key] of [['opt-all-windows','allWindows'],['opt-nested','nested'],['opt-groups','searchGroups']]) $(id).addEventListener('change', () => { if(id==='opt-all-windows'){closePageMenu();$('opt-all-windows').setAttribute('aria-checked',String($('opt-all-windows').checked));}render(); if (!privateMode && (id === 'opt-all-windows' ? preferences.rememberScope : preferences.rememberOptions)) savePreferences({[key]:$(id).checked}).catch(e=>announce(e.message,true)); });
 $('sort-select').addEventListener('change', () => { savePreferences({ sortMode: $('sort-select').value }).catch(e=>announce(e.message,true)); render(); });
+const compactColumns = matchMedia('(max-width:650px)'), mediumColumns = matchMedia('(max-width:900px)');
+function syncCardSizeLabel() {
+    const preferred = 7 - Number($('size-slider').value);
+    const columns = Math.min(preferred, compactColumns.matches ? 2 : mediumColumns.matches ? 3 : 6);
+    $('size-slider').setAttribute('aria-valuetext', `${columns} ${columns === 1 ? 'tab' : 'tabs'} per row${columns < preferred ? ` (${preferred} preferred on wider windows)` : ''}`);
+    $('size-value').textContent = `${columns} per row`;
+}
+compactColumns.addEventListener('change', syncCardSizeLabel);
+mediumColumns.addEventListener('change', syncCardSizeLabel);
 function applyCardSize(columns) {
     captureGridLayout();
     columns = cardColumns(columns);
     $('size-slider').value = 7 - columns;
-    $('size-slider').setAttribute('aria-valuetext', `${columns} ${columns === 1 ? 'tab' : 'tabs'} per row`);
-    $('size-value').textContent = `${columns} per row`;
+    syncCardSizeLabel();
     const slider=$('size-range'), before=getComputedStyle(slider).getPropertyValue('--size-progress').trim(), after=`${(6 - columns) * 20}%`;
     if(slider.style.getPropertyValue('--size-progress')!==after){
         materialMotion.cancel(slider); slider.style.setProperty('--size-progress', after);
@@ -991,7 +1077,20 @@ $('size-slider').addEventListener('input', () => applyCardSize(7 - Number($('siz
 $('size-slider').addEventListener('change', () => savePreferences({ preferredColumns: 7 - Number($('size-slider').value) }).catch(e=>announce(e.message,true)));
 const searchDisclosure = $('search-disclosure');
 function syncSearchFocus() {}
-document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.view; render(); if (state.view === 'recent') refreshRecent(); }));
+const categoryTransition=createCategoryTransition({content:$('tab-content'),motion:materialMotion});
+function switchCategory(view) {
+    if(view===state.view)return;
+    const views=[...document.querySelectorAll('.sources [data-view]:not([hidden])')].map(b=>b.dataset.view);
+    const direction=views.indexOf(view)-views.indexOf(state.view);
+    state.view=view;render();categoryTransition(direction);if(view==='recent')refreshRecent();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.addEventListener('click', () => switchCategory(b.dataset.view)));
+mountCategorySwipe({
+    nav:document.querySelector('.sources'),
+    available:()=>!state.busy&&!state.dragging&&!state.pointerDown&&!document.querySelector('dialog[open], [popover]:popover-open'),
+    getView:()=>state.view,
+    change:switchCategory
+});
 document.addEventListener('click',event=>{
     const summary=event.target.closest('summary');if(!summary)return;
     captureGridLayout();
@@ -1049,18 +1148,26 @@ document.addEventListener('pointercancel', releaseCardPointer, true);
 window.addEventListener('blur', releaseCardPointer);
 window.addEventListener('focus', scheduleRefresh);
 
+const customBackground = mountBackground(chrome);
+mountWallpaperContrast(document.querySelector('#custom-background img'));
 const appearanceMedia = matchMedia('(prefers-color-scheme: dark)');
 appearanceMedia.addEventListener('change', () => applyAppearance(document.documentElement, preferences, appearanceMedia.matches));
 function applyPreferences(next) {
     const previous = preferences; preferences = next;
+    applyBackgroundAdjustments(document.documentElement, preferences);
     applyAppearance(document.documentElement, preferences, appearanceMedia.matches);
     document.documentElement.classList.toggle('motion-off', preferences.motion === 'off');
     document.documentElement.style.setProperty('--motion-duration', `${materialTiming(preferences.visualStyle, preferences.animationSpeed).duration}ms`);
-    materialMotion.sync();
+    document.documentElement.style.setProperty('--group-morph-duration',`${GROUP_MORPH_MS*({efficient:.65,standard:1,smooth:1.6}[preferences.animationSpeed]||1)}ms`);
+    materialMotion.sync(); groupTransition.sync();
+    for(const sortable of sortables.values())sortable.option('delayOnTouchOnly',!mouseSwipeEnabled(preferences));
+    cardSwipe.cancel();
     document.body.classList.toggle('group-drawer-enabled', preferences.dropGroups);
     if (preferences.motion === 'off') document.querySelectorAll('.card-surface').forEach(el => el.getAnimations().forEach(animation => animation.cancel()));
     if (!privateMode && (preferences.rememberOptions || previous.nested !== preferences.nested || previous.searchGroups !== preferences.searchGroups)) { if (!$('opt-nested').disabled) $('opt-nested').checked = preferences.nested; $('opt-groups').checked = preferences.searchGroups; }
-    if (preferences.rememberScope && !privateMode && previous.allWindows !== preferences.allWindows) $('opt-all-windows').checked = preferences.allWindows;
+    if (preferences.rememberScope && !privateMode && previous.allWindows !== preferences.allWindows) {
+        $('opt-all-windows').checked = preferences.allWindows;
+    }
     $('sort-select').value = preferences.sortMode;
     applyCardSize(preferences.preferredColumns);
     features?.preferencesChanged(); settingsPanel?.sync(); render(); updateShortcutHints();
@@ -1092,8 +1199,11 @@ async function init() {
         selection: (scope,mode) => { if(mode==='clear') {selections[scope].clear();} else if(mode==='exit'){selections[scope].clear();selecting[scope]=false;}else{selecting[scope]=!selectionActive(selecting[scope],selections[scope]);if(!selecting[scope])selections[scope].clear();}syncSelection(); },
         undo: () => $('undo-btn').click(), resize: delta => { const columns = Math.max(1,Math.min(6,preferences.preferredColumns+delta));savePreferences({preferredColumns:columns}).catch(e=>announce(e.message,true)); }
     });
-    settingsPanel = mountSettings({dialog:$('settings-dialog'),privateMode,getPrefs:()=>preferences,save:savePreferences,rpc,getGroups:()=>state.groups,getProtected:()=>protectedGroups,isNestedForced:()=>$('opt-nested').disabled,setProtected:async ids=>{protectedGroups=await rpc('protectedGroups',ids);render();},onApplied:applyPreferences,motion:materialMotion});
+    settingsPanel = mountSettings({background:customBackground,dialog:$('settings-dialog'),privateMode,getPrefs:()=>preferences,save:savePreferences,rpc,getGroups:()=>state.groups,getProtected:()=>protectedGroups,isNestedForced:()=>$('opt-nested').disabled,setProtected:async ids=>{protectedGroups=await rpc('protectedGroups',ids);render();},onApplied:applyPreferences,motion:materialMotion});
     applyPreferences(preferences);
+    mountGlassTabs(document.querySelector('.sources'), () => preferences);
+    mountGlassSurfaces(document.querySelector('#custom-background img'));
+    mountLiquidInteractions(() => preferences);
     await Promise.all([refresh(), refreshRecent(), updateUndo()]);
     await features.init(); updateShortcutHints();
 }

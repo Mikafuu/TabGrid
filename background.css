@@ -1,0 +1,36 @@
+/* A separate decorative layer leaves cards, forms, headers and hit testing intact. */
+html.has-custom-background { background: var(--bg); }
+html.has-custom-background body { background: transparent; isolation: isolate; }
+#custom-background { display: none; position: fixed; inset: 0; z-index: -1; pointer-events: none; overflow: hidden; }
+html.has-custom-background #custom-background { display: block; }
+#custom-background img, .background-sample img { width: 100%; height: 100%; max-width: none; position: absolute; left: 0; top: 0; object-fit: cover; opacity: var(--background-opacity,.65); filter: blur(var(--background-blur,0px)); }
+.background-settings { margin-top: 24px; }
+.background-settings > p { color: var(--muted); font-size: 12px; }
+.background-sample { position: relative; height: 150px; overflow: hidden; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); margin-block: 16px; }
+.background-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.background-adjustments { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; margin-block: 16px; }
+.background-adjustments label { min-width: 0; font-size: 12px; }
+.background-adjustments input { width: 100%; min-width: 0; accent-color: var(--accent); padding: 0; }
+.background-adjustments output { color: var(--muted); font-variant-numeric: tabular-nums; }
+.background-settings [hidden] { display: none !important; }
+@media (max-width:650px) { .background-adjustments { grid-template-columns: 1fr; } }
+@media (forced-colors: active), (prefers-reduced-transparency: reduce) { #custom-background { display: none !important; } }
+/* 100% is the minimum cover fit: no invisible overscan enlargement.
+   The preview uses the page's aspect ratio and the same nondestructive crop. */
+#custom-background img,.background-sample img { object-position: var(--background-x,50%) var(--background-y,50%); transform: scale(var(--background-zoom,1)); transform-origin: var(--background-x,50%) var(--background-y,50%); }
+.background-sample { width: min(100%,calc(280px * var(--background-aspect,1.78))); height: auto; aspect-ratio: var(--background-aspect,1.78); cursor: grab; touch-action: none; }
+.background-sample:active { cursor: grabbing; }
+.background-sample[aria-disabled=true] { cursor: default; }
+.background-sample img { pointer-events: none; }
+
+.background-sample img { filter: blur(calc(var(--background-blur,0px) * var(--preview-scale,1))); }
+
+/* Bare captions adapt to the wallpaper without adding a toolbar panel. */
+.wallpaper-label, #size-value.wallpaper-label { color: var(--wallpaper-label-color,inherit); text-shadow: var(--wallpaper-label-shadow,none); }
+@media (forced-colors:active) { .wallpaper-label, #size-value.wallpaper-label { color: CanvasText; text-shadow: none; } }
+
+html.has-custom-background :is(#pinned-heading,.window-pinned > h4,#recent-heading,#privacy-note,#tab-content > section > .section-note,#tab-content .empty) {
+    width: fit-content; max-width: 100%; padding: 4px 8px;
+    background: color-mix(in srgb,var(--bg) 94%,transparent);
+    color: var(--text); border-radius: 4px;
+}

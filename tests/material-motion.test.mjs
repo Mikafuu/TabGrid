@@ -4,7 +4,7 @@ import {createMaterialMotion,materialMotionAllowed,materialTiming,layoutFrames} 
 class Effect {constructor(target,frames,timing){Object.assign(this,{target,frames,timing});}}
 function fixture(options={}){
     let enabled=true;const plugins=new Map();
-    const doc={createElement:()=>({dataset:{},remove(){}})};
+    const doc={body:{append(){}},createElement:()=>({dataset:{},append(){},remove(){}})};
     const target={tagName:'DIV',isConnected:true,children:[],getAnimations(){return this.animations||[];},append(){},getBoundingClientRect(){return this.rect;},getClientRects(){return [this.rect];},hasAttribute(){return false;}};
     const style=el=>el.current||{opacity:'1',transform:'none'};
     const motion=createMaterialMotion({doc,allowed:()=>enabled,Effect,style,animate:(el,plugin)=>{plugins.set(el,plugin);return {};},...options});
@@ -98,4 +98,27 @@ test('a nested popover fades through the observer that already owns it',()=>{
     const [effect]=plugins.get(parent)(popup);
     assert.equal(effect.target,popup);assert.deepEqual(effect.frames,[{opacity:'1'},{opacity:0}]);
     assert.equal(plugins.get(popup)(popup)[0].timing.duration,0);
+});
+
+test('native popup effects use a separate observer instead of parent menu children',async()=>{
+    const {motion,target,plugins}=fixture();let toggle;target.addEventListener=(_,fn)=>{toggle=fn;};target.setAttribute=()=>{};target.removeAttribute=()=>{};target.getAttribute=()=> 'menu';
+    motion.native(target);assert.equal(plugins.has(target),false);toggle({newState:'open'});await Promise.resolve();
+    const [driver,plugin]=[...plugins.entries()][0];const [effect]=plugin(driver);assert.equal(effect.target,target);assert.deepEqual(effect.frames,[{opacity:0},{opacity:1}]);
+    assert.equal(plugin({})[0].timing.duration,0);
+});
+
+test('special native choreography runs through the same observer and skips stale toggles',async()=>{
+    const {motion,target,plugins}=fixture();let toggle;const calls=[];
+    target.addEventListener=(_,fn)=>{toggle=fn;};target.setAttribute=()=>{};target.removeAttribute=()=>{};
+    motion.native(target,{transition:(open,driver)=>{calls.push(open);motion.play(driver,target,[{opacity:0},{opacity:1}],{anchor:driver,effectTiming:{duration:400,fill:'both'}});return true;}});
+    toggle({newState:'open'});toggle({newState:'closed'});await Promise.resolve();
+    assert.deepEqual(calls,[false]);const [driver,plugin]=[...plugins.entries()][0];
+    assert.equal(plugin(driver)[0].timing.duration,400);
+});
+
+test('choreography completion follows auto-animate playback instead of request time',async()=>{
+    const {motion,target,plugins}=fixture();let finish,completed=0;
+    motion.play(target,target,[{opacity:1},{opacity:0}],{effectTiming:{duration:400,fill:'both'},onFinish:()=>completed++});
+    const [effect]=plugins.get(target)(target);target.animations=[{effect,addEventListener:(name,fn)=>{assert.equal(name,'finish');finish=fn;}}];
+    await Promise.resolve();assert.equal(completed,0);finish();assert.equal(completed,1);
 });

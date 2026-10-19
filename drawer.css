@@ -43,7 +43,8 @@ html.motion-off *, html.motion-off *::before, html.motion-off *::after { transit
 
 /* Lock only the root scroll container so sticky headers keep their coordinates. */
 html.modal-open body { overflow: visible; }
-.header-surface::before { content: ''; position: absolute; inset-block: 0; left: 50%; width: 100vw; transform: translateX(-50%); background: var(--bg); z-index: -1; }
+/* Paint above the document edge during macOS elastic overscroll. */
+.header-surface::before { content: ''; position: absolute; inset-block: -100vh 0; left: 50%; width: 100vw; transform: translateX(-50%); background: var(--bg); z-index: -1; }
 .page-header.header-folded .header-surface { transform: translateY(-110%); opacity: 0; pointer-events: none; }
 html[data-visual-style] :is(#context-menu,#context-submenu,#page-menu) { transform: none !important; transition: display var(--motion-duration,180ms) allow-discrete, overlay var(--motion-duration,180ms) allow-discrete; }
 .window-section > h3 { margin: 0 0 16px; }
@@ -105,3 +106,8 @@ html[data-visual-style=clay] .size-knob { border: 3px solid var(--surface); box-
 .tint-content { overflow: clip; }
 .tint-content .theme-options { padding: 3px; }
 .tint-content[data-collapsed] { height: 0; opacity: 0; pointer-events: none; }
+
+/* Keep closed content paintable for its exit animation, then out of focus/hit testing.
+   Expanded pickers must be able to extend beyond the filter row. */
+.filter-content { display: flow-root; }
+.filter-content[data-collapsed] { height: 0; opacity: 0; overflow: clip; pointer-events: none; }

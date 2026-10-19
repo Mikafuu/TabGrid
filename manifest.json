@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Tab Grid View",
+  "name": "TabGrid",
   "version": "1.0",
-  "description": "Tab Grid View that resembles that of mobile chrome app, but with a bit more features.",
+  "description": "A desktop Chrome extension that brings your tabs and tab groups into one visual grid.",
   "permissions": [
     "tabs",
     "tabGroups",

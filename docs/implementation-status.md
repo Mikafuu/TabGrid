@@ -461,3 +461,121 @@ Supersedes the earlier delayed-opening behavior: submenus now open immediately o
 Supersedes the immediate-opening revision above: every hover entry now waits 150 ms, including switching between submenu items. Leaving the parent/submenu region starts dismissal without a timer. Quick pointer passes and closing the parent menu cancel pending entry. Clicks still do not toggle submenus.
 
 Fixed the actual visual dismissal bug: auto-animate had already assigned the nested submenu to its parent observer, so its opacity plan was never consumed by the submenu observer. The parent observer can now consume the nested surface's plan. This preserves auto-animate ownership and opacity-only fades while eliminating the fully opaque hold during the native popover's discrete exit.
+
+### 2026-10-11 — Fresher tab previews
+
+The toolbar and extension shortcut now attempt a final capture before activating TabGrid, with a 1-second upper bound on the extra wait and cancellation of expired work. A user tab switch during that wait is respected. Direct switches to an already-open grid retain the latest cached preview.
+
+An idempotent, isolated-world script attaches to active HTTP(S) tabs, including tabs open when the extension reloads. It sends only an activity signal after 400 ms of settled scrolling/input/clicking/resizing, at most once every 2 seconds, while visible and focused. It does not read keystrokes, field values, or page content, and stops pending work when hidden or capture is disabled/excluded. Incognito is excluded. There is no idle polling, tab reactivation, new permission, or network service.
+
+Activation, load completion, and window focus continue to refresh eligible tabs. Screenshot calls are serialized across windows with at least 600 ms between starts; requests wait rather than disappearing under the old per-window throttle. Active-tab/URL checks, invalidation tokens, preferences, deadlines, and storage limits are rechecked. Frequent writes trim using index metadata and byte counts rather than rereading every cached image.
+
+### 2026-10-11 — Faster opening with fresh previews
+
+The extra pre-open capture budget is now 250 ms instead of 1 second, including initialization and freshness checks. Last-opened bookkeeping no longer blocks opening behind unrelated queued actions. A saved preview can be reused for 1.5 seconds only when a top-frame activity query confirms the same document instance and interaction revision. Revisions change immediately on events, before the settled/throttled capture signal. If tracking is missing or the query takes more than 50 ms, freshness is unconfirmed and the normal bounded capture path applies.
+
+Screenshot acquisition and source-tab validation now finish separately from serial saving/eviction. Once confirmed, those pixels may save after TabGrid opens; ordinary activation invalidates unfinished acquisition only. Clear, navigation, preference changes, exclusion, and closed-tab checks still prevent invalid pending saves. Thumbnail quality remains JPEG 40. Direct tab switching still uses the latest cached preview.
+
+### 2026-10-11 — Screenshot quality preference
+
+- Added Screenshot quality under Previews & Storage, shown when Capture screenshots is enabled. Low / Standard / High map to JPEG quality 20 / 40 / 80; Standard preserves the previous capture setting.
+- Each future capture reads the saved quality. Existing previews remain unchanged until refreshed. Validation, legacy preference defaults, backup export/import, settings search and regular-window-only management include the new preference.
+
+### 2026-10-12 — Custom backgrounds
+
+- Appearance now offers local JPG / PNG / WebP uploads, an image preview, replacement/removal, and live background transparency (0–100%) and blur (0–40 px) controls. Reset appearance removes the image and restores adjustment defaults in regular windows.
+- Background images are separate from preferences and excluded from settings backups. Uploads are re-encoded to WebP without original metadata, limited to 15 MiB input / 40 million pixels, downscaled to a 2560 px longest edge, and capped at 4 MiB stored. No remote uploads or new permissions.
+- The fixed decorative layer ignores pointer input and leaves existing cards, dialogs, menus and headers intact. Background changes sync through Chrome storage events. Management is disabled in Incognito. Forced colors and reduced transparency hide the decorative background.
+- User's existing manifest edits were preserved byte-for-byte.
+
+### 2026-10-14 control refinements
+
+Added shared hover-state transitions, including interpolated glass tint for wallpaper-backed cards; repaired group color radios and selected-card hit-surface fills. Unified searchable filter fields and arrow focus handling, rounded filter toggles, padded tint headings, made the glass header span the viewport with four rounded corners, and styled drawer targets/status tips translucently. Grid focus outlines now follow selection mode. Show all windows clears collapsed state when enabled. Window press feedback is restrained, closed filters lose their focus tint, and Flat category hover text remains readable. No GPU optimization or submenu intent changes were made in this pass, per request.
+
+### 2026-10-14 — Glass performance, crop controls, and menu travel
+
+- Glass lenses share cached wallpaper textures at each render resolution. Wallpaper blur and upload happen only when the image, crop, appearance, or viewport changes; lenses copy their region on the GPU. Scrolling temporarily caps resolution at 1x and restores the normal cap after 145 ms. Idle rendering still stops, and hidden surfaces release their resources.
+- Context submenus retain the 150 ms hover opening delay. A directional triangle toward the visible submenu permits diagonal travel across neighboring items for up to 350 ms; leaving that route or leaving the submenu closes it immediately. Destructive actions retain their red text in all materials.
+- Background preview matches the page aspect ratio and supports pointer dragging, arrow-key positioning, 100–300% zoom, horizontal/vertical position sliders, and Reset crop. Changes are nondestructive preferences; uploading a replacement resets the crop. Incognito cannot change these settings.
+- Settings search results and speed choices use glass-compatible tints; result rows have 8 px corners. Classic/Flat Filters use the theme surface background. Available styles are Classic, Flat, and Glassmorphism; saved Neumorphism/Claymorphism choices migrate to Classic. Historical source styles and credits remain intact.
+- All windows initially expand. User collapse choices now survive scope toggles and reloads in the same TabGrid session. Expanded window content reserves 6 px beyond its clipping edge for card rings; closed sections remain clipped.
+- Root overscroll is disabled so a short page cannot expose wallpaper above the header. The header still paints its background above the surface.
+
+## 2026-10-15 — Card gestures and menu refinements
+
+- Website icons have a neutral light backing, including group tiles and missing-preview icons, so transparent dark artwork stays visible in dark themes.
+- Color tint options sit immediately below the current tint summary, before custom backgrounds. Glassmorphism displays a battery-use note.
+- Native context menus use a fixed optical frame and a bounded inner scroller. Native popup fades have independent auto-animate drivers, avoiding parent replay on first submenu insertion. Arrow Right opens a submenu for keyboard users; pointer timing/corridor behavior remains unchanged.
+- Settings search jump highlights clear on outside pointer presses and dialog close.
+- Swipe-to-close defaults off. Mouse, touchpad, or both are independently selectable. Mouse dragging starts after a 250 ms hold when mouse swiping is enabled. A close requires horizontal dominance of 1.6:1, at least 60 ms, and 35% of card width clamped to 96–160 px. Touchpad momentum cannot close another card until 180 ms of wheel inactivity. Close confirmation and Undo use the existing tab-action path.
+- Group tabs by dragging defaults on. Holding over the central 60% of a compatible card for 350 ms arms grouping. Pinned/self/same-group drops are excluded. Dropping onto an ungrouped tab opens the existing new-group dialog.
+- Leaving a group panel by 24 px (reduced to half the available margin on narrow viewports) offers ungrouping. After 450 ms outside, the panel closes and the Sortable fallback copy moves to the main page; the live slot stays under Sortable's ownership. A continued drop can join another group or land in main-grid order. Escape/blur cancels the final mutation.
+- Show group drop targets now defaults off. Explicit saved on/off choices remain intact.
+- Gesture choices are validated and included in settings import/export. The local manifest edit and README credits are preserved.
+
+## 2026-10-15 — Touchpad swipe follow-up
+
+- Horizontal wheel input moves the card in content direction and suppresses page scrolling, including trailing momentum. Partial swipes persist across idle pauses and can be continued or reversed; Escape, an outside click, vertical scrolling, or losing focus resets them.
+- Removed the background indicator. The moving surface fades to zero opacity at the close distance and its slot stacks above neighboring cards; expanded window sections no longer clip its sideways movement.
+- Successful closes no longer animate back before removal. Confirmation/failure restores cards that remain open. Layout effects leave parked swipes under their gesture controller's ownership.
+- Native tab-index changes update card models without rebuilding their preview contents. Activity and preview snapshots load concurrently, reducing unnecessary work before neighboring cards move.
+
+## 2026-10-15 — Compact settings help and close-layout correction
+
+- Instructional settings tips now appear through adjacent info buttons and themed top-layer tooltips. Hover, focus and click reveal help; Escape, outside interaction, settings scrolling and closing dismiss it. Setting labels retain explicit accessible associations; info clicks do not toggle their settings. Dynamic status/error text and descriptive style/color labels remain visible.
+- Classic/Flat tips follow their surface tokens; Glass uses a small translucent blurred surface without an extra optical canvas.
+- Fixed two close-reflow causes: retired nodes reinserted by auto-animate temporarily occupied grid slots, and an ignored mutation batch left stale captured coordinates for the next refresh. Retired nodes now stay out of flow, and captures expire at the next frame. Sortable and auto-animate retain their existing responsibilities.
+- Touchpad momentum now resets unfinished swipes and cannot trigger a close. A pause without momentum still cannot identify whether fingers are touching the pad; see `chrome-grid-interaction-research.md`.
+
+## Android-style grouping and swipe rearming — 2026-10-16
+
+Direct grouping uses Chromium's strict 50% card-overlap threshold and highlights immediately, without the prior 350 ms dwell. Grab offsets are preserved. Group panels show a bottom removal area during dragging; release there ungroups and re-entry cancels. New groups retain name/color setup; remaining group members keep their panel open. Outside-panel continuation was restored in the follow-up below.
+
+### 2026-10-16 — Settings alignment and restored group continuation
+
+- Settings help buttons are 18 px with a 12 px icon, aligned with their caption and separated by 4 px. Tooltips prefer the right side, with viewport-aware left/below fallback; themed surfaces and keyboard dismissal remain intact.
+- The live “Color tint: …” summary is immediately below the Color tint legend and above the palette families.
+- Holding a dragged group member beyond the panel margin for 450 ms closes the panel and continues the same drag on the main grid. Only the fallback copy moves to the page; Sortable retains ownership of live card slots. Re-entry cancels the hold, Escape cancels the operation, and continued drops can join groups or ungroup on empty space.
+- Main-grid grouping detection is unchanged in this follow-up, pending discussion of the native Chrome interaction.
+
+Touchpad input re-arms immediately after momentum returns to physical input, with a quiet-gap fallback for delayed timers. No click, pointer exit or vertical scroll is needed to unlock a returned swipe. Browsers still cannot reliably distinguish fingers resting motionless from fingers lifted without inertia; no guessed timeout resets a parked partial swipe.
+
+## 2026-10-16 — Coordinated grouping and reordering
+
+Main-grid drags now keep eligible target cards stationary through the approach and grouping overlap. Crossing the target’s far edge permits Sortable to reorder and clears the group highlight. Releasing during the overlap groups; releasing after a reorder preserves the changed order. Current stable slots determine subsequent and reversed moves. Grouping-disabled, pinned, and inside-group reorder behavior is preserved, as is the 450 ms outside-group continuation. Settings help and README explain the distinction.
+
+## 2026-10-17 — Prevent premature edge-entry reordering
+
+The far-edge gate now uses horizontal bounds for targets in the same row and vertical bounds for targets in another row. Previously, a diagonal approach could cross the target’s side edge before reaching its vertical reorder boundary, which authorized an early Sortable insertion. A 1 CSS px tolerance ignores fractional layout differences. The decision still runs in Sortable’s pre-insertion callback, using stable slots; no DOM-ordering or animation ownership changed.
+
+## 2026-10-17 — Touchpad category navigation
+
+Removed touchpad card closing and the Swipe using selector. Swipe to close remains off by default and now controls mouse dragging only; obsolete input preferences are ignored when settings are loaded or imported. Existing hold-to-reorder/group and close confirmation/Undo remain intact.
+
+Horizontal pixel-wheel gestures below the category bar now switch one visible category at a time after 96 px of accumulated horizontal movement. Hidden categories are skipped; search includes All results. Edges do not wrap. Vertical scrolling, zoom/modifier gestures, open menus/dialogs, form fields, drawers, and active dragging are excluded. A quiet-gap lock absorbs the remaining gesture; reported momentum cannot initiate another switch. Category buttons retain the same click and keyboard behavior.
+
+## 2026-10-17 — Category, settings and drag visual refinements
+
+- Category navigation now has a direction-aware 40 px horizontal content entry through the existing material-motion controller. The horizontal wheel threshold is 56 px, down from 96 px; one-category locking and below-header gating remain. Reduced motion skips the effect.
+- Appearance uses 16 px spacing on both sides of the Visual style heading; the current tint label has a 12 px indent. Swipe help describes mouse release, the hold-to-drag lift, and independent touchpad category navigation. Filter radii follow each material (Classic 8 px, Flat 6 px, Glass pill).
+- Group popup entry fades and slides its inner header/controls/grid up 12 px, without transforming the dialog or changing fixed drawer positioning.
+- Overlap grouping shrinks the destination surface to 90% while a stationary slot outline retains its size. The fallback card shrinks to 94% only when swipe-to-close is enabled. Drop-target tray grouping keeps its original 78% fallback treatment.
+- Glass category geometry uses fractional title-button bounds. During pill dragging, width follows the nearest category title; release settles to the selected title's exact bounds.
+
+### 2026-10-17 — Hold feedback and source-anchored groups
+
+- Removed the selected redundant swipe-close tooltip text, retaining the opening sentence.
+- Sortable's choose/unchoose lifecycle now animates the held source surface at the 250 ms drag-mode threshold, before movement. Releasing without dragging restores its size; fallback copies continue the current scale. Shrinking remains conditional on swipe-to-close.
+- Replaced the group content slide with Chromium Android-inspired card-to-panel expansion and reverse collapse, including staged crossfades, source fallback, interrupted-motion cleanup, and reduced-motion support. The existing outside-panel drag continuation bypasses the close effect.
+
+- Follow-up: group removal now requires the cursor within the remove bar; the existing outside-panel hold remains cursor-based. The fallback card layers above the bar, and in-panel status/help text has no raised background.
+- The source group card remains visible during opening. Normal close waits for the animation owner's finish event before native dismissal, preventing a clipped reverse morph, including Classic style. Escape/backdrop/done use the same close path; drag handoff stays immediate.
+
+### 2026-10-18 — Group motion and drag handoff refinements
+
+- Group morphs now take 169 / 260 / 416 ms for Efficient / Standard / Smooth. The temporary card snapshot has no duplicate border, outline, or rounded inner edge.
+- All styles transition group backdrop dimming and blur with the morph; reduced motion disables that transition.
+- Hover-out continuation releases the native modal for main-grid hit testing while an inert copy completes the reverse morph below the dragged card. Its backdrop fades from the captured visible shade. This replaces the earlier immediate visual dismissal.
+- The source group preview omits the departing tab immediately during handoff; cancellation restores it, and completed operations reconcile against refreshed membership.
+- Drag start refreshes surface layout baselines, avoiding stale coordinates captured during the scaled group-opening animation.
+- Glassmorphism's remove bar uses a translucent surface/tint, the existing glass sheen and edge, and local blur. Reduced-transparency preferences retain an opaque surface.

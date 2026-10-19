@@ -62,3 +62,11 @@ test('partial Undo failures still return to the grid and non-grid targets are no
     await f.actions.undo(null,2);
     assert.equal(f.calls.some(c=>c[0]==='windowUpdate'),false);
 });
+
+test('a departing tab disappears from group previews without mutating group membership',()=>{
+    const members=Array.from({length:6},(_,index)=>({id:index+1,index}));
+    const tiles=groupPreviewTiles(members,2);
+    assert.deepEqual(tiles.filter(tile=>tile.tab).map(tile=>tile.tab.id),[1,3,4]);assert.equal(tiles[3].remaining,2);
+    assert.equal(members.length,6);assert.equal(groupPreviewTiles(members)[1].tab.id,2);
+    assert.ok(groupPreviewTiles([members[0]],1).every(tile=>!tile.tab));
+});

@@ -1,5 +1,4 @@
-/* liquidGL-inspired CSS glass, not its GPU renderer or an Apple material.
-   Rim light and local frost preserve live text, previews, and stable drag slots. */
+/* Liquid DOM optics with CSS fallback and native, accessible controls. */
 html[data-visual-style=glass] {
     --material-radius: 22px;
     --material-control-radius: 999px;
@@ -53,9 +52,152 @@ html[data-visual-style=glass] :is(input[type=search],input[type=text]:not(.filte
 html[data-visual-style=glass] textarea { border-radius: 16px; }
 html[data-visual-style=glass] select { background-color: var(--glass-film); border-color: var(--glass-edge); }
 html[data-visual-style=glass] .filter-expand { border-radius: 0 999px 999px 0; }
+/* Filters fallback when the WebGPU wallpaper renderer is unavailable. */
+html[data-visual-style=glass] .page-controls .filter-toggle {
+    --filter-glass-fill: color-mix(in srgb,var(--surface) 42%,transparent);
+    --filter-glass-rim: rgb(255 255 255 / .9);
+    --filter-glass-shade: color-mix(in srgb,var(--text) 16%,transparent);
+    position: relative;
+    min-height: 44px;
+    padding: 10px 17px;
+    gap: 9px;
+    border: 1px solid color-mix(in srgb,var(--surface) 65%,transparent);
+    border-radius: 999px;
+    color: var(--text);
+    font-weight: 600;
+    background-color: var(--surface);
+    background-image: linear-gradient(165deg,rgb(255 255 255 / .34),transparent 48%,rgb(255 255 255 / .08));
+    box-shadow: inset 0 1px 1px var(--filter-glass-rim),
+        inset 0 -1px 2px var(--filter-glass-shade),
+        0 3px 8px -3px var(--filter-glass-shade);
+}
+/* The rim is decorative and cannot intercept the icon, count or hit target. */
+html[data-visual-style=glass] .page-controls .filter-toggle::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg,var(--filter-glass-rim),transparent 38%,var(--filter-glass-shade) 66%,var(--filter-glass-rim));
+    mask: linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+}
+html[data-color-mode=dark][data-visual-style=glass] .page-controls .filter-toggle {
+    --filter-glass-fill: color-mix(in srgb,var(--surface) 64%,transparent);
+    --filter-glass-rim: rgb(255 255 255 / .38);
+    --filter-glass-shade: rgb(0 0 0 / .32);
+    border-color: rgb(255 255 255 / .18);
+    background-image: linear-gradient(165deg,rgb(255 255 255 / .12),transparent 48%,rgb(255 255 255 / .03));
+}
+@supports (backdrop-filter: blur(1px)) {
+    html[data-visual-style=glass] .page-controls .filter-toggle {
+        background-color: var(--filter-glass-fill);
+        backdrop-filter: blur(8px) saturate(1.35);
+    }
+}
+html[data-visual-style=glass] .page-controls .filter-toggle:hover {
+    background-color: color-mix(in srgb,var(--surface) 72%,transparent);
+    color: var(--text);
+}
+html[data-visual-style=glass] .page-controls .filter-toggle:is(:active,[aria-expanded=true]) {
+    background-color: color-mix(in srgb,var(--surface) 82%,var(--accent));
+    box-shadow: inset 0 1px 3px var(--filter-glass-shade),inset 0 -1px 0 var(--filter-glass-rim);
+}
+html[data-visual-style=glass] .page-controls .filter-toggle:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+/* The native control remains above the renderer and owns all interaction. */
+.filter-glass-surface { display: none; }
+html[data-visual-style=glass] .page-controls .filter-toggle.filter-glass-ready {
+    isolation: isolate;
+    background: transparent;
+    border-color: transparent;
+    backdrop-filter: none;
+    box-shadow: 0 3px 8px -3px var(--filter-glass-shade);
+}
+html[data-visual-style=glass] .page-controls .filter-glass-ready::after { display: none; }
+html[data-visual-style=glass] .filter-glass-ready .filter-glass-surface {
+    display: block;
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    overflow: hidden;
+    z-index: -1;
+    pointer-events: none;
+}
+.filter-glass-surface canvas { position: absolute; left: -128px; top: -128px; pointer-events: none; }
+@media (prefers-reduced-transparency: reduce) {
+    html[data-visual-style=glass] .page-controls .filter-toggle {
+        --filter-glass-fill: var(--surface);
+        background: var(--surface);
+        backdrop-filter: none;
+    }
+    html[data-visual-style=glass] .page-controls .filter-toggle:hover { background: var(--surface); }
+}
+@media (forced-colors: active) {
+    html[data-visual-style=glass] .page-controls .filter-toggle {
+        background: ButtonFace;
+        color: ButtonText;
+        border: 1px solid ButtonText;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+    html[data-visual-style=glass] .page-controls .filter-toggle::after { display: none; }
+    html[data-visual-style=glass] .page-controls .filter-toggle:focus-visible { outline-color: Highlight; }
+}
 html[data-visual-style=glass] :is(input,textarea)::placeholder { opacity: 1; }
 html[data-visual-style=glass] :is(.live-filters,.toolbar,.font-sample) {
     background: var(--glass-film); border: 1px solid var(--glass-edge); border-radius: 18px; box-shadow: var(--material-shadow);
+}
+/* One optical surface for the entire panel; its fields are quiet inset controls. */
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) { overflow: clip; }
+html[data-visual-style=glass] .live-filters.filter-glass-panel {
+    position: relative;
+    isolation: isolate;
+    margin-top: 12px;
+    padding: 20px;
+    gap: 16px;
+    border-radius: 18px;
+    box-shadow: inset 0 1px 0 var(--glass-light),0 6px 18px -10px var(--glass-shadow);
+}
+html[data-visual-style=glass] .live-filters.filter-glass-panel.filter-glass-ready {
+    background: transparent;
+    border-color: transparent;
+    backdrop-filter: none;
+}
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) .live-filters :is(.filter-picker,select,.filter-expand),
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) .live-filters > button {
+    border-radius: 9px;
+    box-shadow: none;
+    backdrop-filter: none;
+    border-color: color-mix(in srgb,var(--text) 16%,transparent);
+    background-color: color-mix(in srgb,var(--surface) 64%,transparent);
+}
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) .live-filters .filter-expand {
+    border: 0;
+    border-radius: 0 9px 9px 0;
+    background: transparent;
+}
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) .live-filters .filter-field > label { color: var(--text); }
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) .live-filters > button { background-image: none; }
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) .live-filters :is(.filter-expand,button):hover {
+    background-color: color-mix(in srgb,var(--surface) 80%,var(--accent));
+}
+html[data-visual-style=glass] :is(#filters-root-content,#filters-group-content) .live-filters .filter-picker-list {
+    background: var(--surface);
+    backdrop-filter: none;
+    border-radius: 12px;
+}
+html[data-visual-style=glass] .page-controls .filter-toggle[aria-expanded=true] {
+    box-shadow: none;
+}
+@media (max-width:650px) {
+    html[data-visual-style=glass] .live-filters.filter-glass-panel { padding: 16px; gap: 12px; }
+}
+@media (prefers-reduced-transparency:reduce), (forced-colors:active) {
+    html[data-visual-style=glass] .live-filters.filter-glass-panel { background: var(--surface); }
 }
 html[data-visual-style=glass] .card > .card-surface { position: relative; border-color: var(--glass-edge); }
 /* No backdrop filter per scrolling card: translucent film and beveled edges
@@ -129,3 +271,100 @@ html[data-visual-style=glass] :is(dialog:not([open]),[popover]:not(:popover-open
     html[data-visual-style=glass] :is(.card-surface,.sources,button,dialog,[popover],input,select,.filter-picker) { border: 1px solid CanvasText; box-shadow: none; backdrop-filter: none; }
     html[data-visual-style=glass] .card-surface::after { display: none; }
 }
+
+/* Shared liquid-dom surfaces. Each overlay owns one optical layer; controls
+   inside it retain flat translucent fills so nested glass remains readable. */
+html[data-visual-style=glass] {
+    --liquid-hover-fill: color-mix(in srgb,var(--surface) 84%,var(--accent));
+    --liquid-pressed-fill: color-mix(in srgb,var(--surface) 72%,var(--accent));
+}
+html[data-visual-style=glass] :is(.page-actions > button,.group-controls > button,.filter-toggle,.live-filters,.sources,.toolbar).liquid-surface { position: relative; }
+html[data-visual-style=glass] .liquid-surface { isolation: isolate; }
+html[data-visual-style=glass] .liquid-surface.filter-glass-ready {
+    background-color: transparent !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    border-color: transparent;
+}
+html[data-visual-style=glass] .liquid-surface.filter-glass-ready > .filter-glass-surface { display: block; }
+html[data-visual-style=glass] .liquid-surface.primary.filter-glass-ready { color: var(--text); }
+html[data-visual-style=glass] .filter-content { overflow: clip; }
+html[data-visual-style=glass] :is(.live-filters,dialog,[popover],.search-history,.toolbar) button:not(.primary):not(.menu-colors button):not(.card-open) {
+    background-image: none; box-shadow: none;
+}
+html[data-visual-style=glass] :is(dialog,[popover],.search-history) { color: var(--text); }
+html[data-visual-style=glass] :is(.settings-sidebar,.settings-tabs,.group-header,.group-content) { background: transparent; }
+html[data-visual-style=glass] :is(.settings-group,.font-sample,.theme-choice,.style-choice) {
+    background-color: color-mix(in srgb,var(--surface) 58%,transparent);
+    box-shadow: none;
+}
+html[data-visual-style=glass] :is(button:not(.card-open):not(.menu-colors button),.filter-picker-option,.search-history [role=option]):is(:hover,:focus-visible):not(:disabled),
+html[data-visual-style=glass] :is(#page-menu,#context-menu,#context-submenu) button:is(:hover,:focus-visible):not(:disabled),
+html[data-visual-style=glass] .live-filters .filter-expand:is(:hover,:focus-visible):not(:disabled) {
+    background-color: var(--liquid-hover-fill); background-image: none; color: var(--text);
+    border-color: color-mix(in srgb,var(--accent) 28%,var(--glass-edge)); filter: none;
+}
+html[data-visual-style=glass] button:not(.card-open):not(.menu-colors button):active:not(:disabled) { background-color: var(--liquid-pressed-fill); }
+html[data-visual-style=glass] :is(button,input[type=range],input[role=switch],.filter-picker-option) { scale: var(--liquid-press,1); }
+html[data-visual-style=glass] .primary:not(.filter-glass-ready):is(:hover,:active):not(:disabled) { background-color: var(--accent); color: var(--on-accent); }
+html[data-visual-style=glass] button.danger:is(:hover,:focus-visible):not(:disabled),
+html[data-visual-style=glass] :is(#page-menu,#context-menu,#context-submenu) button.danger:is(:hover,:focus-visible):not(:disabled) { color: var(--danger); background-color: color-mix(in srgb,var(--surface) 88%,var(--danger)); }
+html[data-visual-style=glass] :is(button,input,select,textarea,[tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+html[data-visual-style=glass] :is([popover],.search-history) :focus-visible { outline-offset: -3px; }
+html[data-visual-style=glass] :is(button,input,select):disabled { opacity: .48; scale: 1; }
+html[data-visual-style=glass] :is(.sources button[aria-current=page],.settings-tabs button[aria-selected=true],.filter-picker-option[aria-selected=true]) {
+    color: var(--accent); background: color-mix(in srgb,var(--surface) 78%,var(--accent)); box-shadow: inset 0 1px 0 var(--glass-light);
+}
+/* Slider inputs keep their native keyboard, pointer and label behavior. */
+html[data-visual-style=glass] input[type=range] { appearance: none; border: 0; border-radius: 999px; height: 8px; background: color-mix(in srgb,var(--surface) 60%,var(--accent)); box-shadow: inset 0 1px 3px var(--glass-shadow),0 1px 0 var(--glass-light); cursor: pointer; }
+html[data-visual-style=glass] input[type=range]::-webkit-slider-thumb { appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--glass-sheen),var(--surface); border: 1px solid var(--glass-edge); box-shadow: inset 0 1px 1px var(--glass-light),0 2px 5px var(--glass-shadow); }
+html[data-visual-style=glass] input[type=range]:hover::-webkit-slider-thumb { background-color: var(--liquid-hover-fill); border-color: var(--accent); }
+html[data-visual-style=glass] input[role=switch] { border-color: var(--glass-edge); background: color-mix(in srgb,var(--surface) 64%,var(--muted)); }
+html[data-visual-style=glass] input[role=switch]:checked { background: var(--accent); }
+html[data-visual-style=glass] input[role=switch]::before { background: var(--surface); box-shadow: inset 0 1px 0 var(--glass-light),0 1px 4px var(--glass-shadow); }
+@media (prefers-reduced-motion:reduce) { html[data-visual-style=glass] :is(button,input,.filter-picker-option) { scale: 1; } }
+@media (prefers-reduced-transparency:reduce),(forced-colors:active) {
+    html[data-visual-style=glass] .liquid-surface { background: var(--surface); backdrop-filter: none; }
+    html[data-visual-style=glass] .liquid-surface > .filter-glass-surface { display: none; }
+}
+@media (forced-colors:active) {
+    html[data-visual-style=glass] :is(button,input,select,[popover],dialog) { background: Canvas; color: CanvasText; border: 1px solid CanvasText; box-shadow: none; }
+    html[data-visual-style=glass] :is(button,input,select):focus-visible { outline-color: Highlight; }
+}
+html[data-visual-style=glass] .liquid-slider-track { position: absolute; top: 17px; left: 0; right: 0; height: 8px; border-radius: 999px; background: var(--glass-film); pointer-events: none; }
+html[data-visual-style=glass] input[role=switch]::before { transform: translateX(var(--liquid-switch,0px)); transition: none; }
+html[data-visual-style=glass] input[role=switch]:checked::before { transform: translateX(var(--liquid-switch,14px)); }
+html[data-visual-style=glass].motion-off :is(button,input,.filter-picker-option) { scale: 1; }
+
+/* A quiet segmented track with one moving optical selection surface. */
+.liquid-tab-indicator { display: none; }
+html[data-visual-style=glass] .sources {
+    position: relative; isolation: isolate; gap: 2px; padding: 4px;
+    border: 1px solid color-mix(in srgb,var(--text) 12%,transparent);
+    background: color-mix(in srgb,var(--surface) 28%,transparent);
+    backdrop-filter: none; box-shadow: none; flex-wrap: nowrap; overflow-x: auto;
+}
+html[data-visual-style=glass] .sources > .liquid-tab-indicator {
+    display: block; position: absolute; left: 0; top: 0;
+    width: var(--liquid-tab-width,0px); height: var(--liquid-tab-height,0px);
+    transform: translate(var(--liquid-tab-x,0px),var(--liquid-tab-y,0px));
+    border: 1px solid color-mix(in srgb,var(--surface) 72%,transparent);
+    border-radius: 999px; background: color-mix(in srgb,var(--surface) 72%,transparent);
+    box-shadow: inset 0 1px 0 var(--glass-light),0 2px 6px var(--glass-shadow);
+    pointer-events: none; z-index: 0;
+}
+html[data-visual-style=glass] .sources > button,
+html[data-visual-style=glass] .sources > button[aria-current=page],
+html[data-visual-style=glass] .sources > button:is(:hover,:active,:focus-visible):not(:disabled) {
+    position: relative; z-index: 1; flex: 0 0 auto; min-width: 82px;
+    padding: 9px 18px; border: 1px solid transparent;
+    background: transparent; background-image: none; box-shadow: none;
+    font-weight: 550; color: var(--muted); scale: 1;
+}
+html[data-visual-style=glass] .sources > button[aria-current=page],
+html[data-visual-style=glass] .sources > button:is(:hover,:focus-visible):not(:disabled) { color: var(--text); }
+html[data-visual-style=glass] .sources > button:focus-visible { outline-offset: -3px; }
+html[data-color-mode=dark][data-visual-style=glass] .sources { border-color: rgb(255 255 255 / .16); background: rgb(0 0 0 / .12); }
+@media (max-width:650px) { html[data-visual-style=glass] .sources > button { min-width: 70px; padding-inline: 12px; } }
+@media (prefers-reduced-transparency:reduce) { html[data-visual-style=glass] .sources { background: var(--bg); } html[data-visual-style=glass] .sources > .liquid-tab-indicator { background: var(--surface); } }
+@media (forced-colors:active) { html[data-visual-style=glass] .sources { border-color: CanvasText; background: Canvas; } html[data-visual-style=glass] .sources > .liquid-tab-indicator { border-color: Highlight; background: Canvas; } }

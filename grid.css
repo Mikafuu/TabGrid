@@ -1,6 +1,6 @@
 :root { color-scheme: light dark; --card-columns: 6; --bg: #f0f2f5; --surface: #fff; --text: #1c1e21; --muted: #59616c; --line: #c9ced6; --accent: #1768ce; --selected: #d3e3fd; --danger: #b3261e; }
 * { box-sizing: border-box; }
-body { margin: 0; padding: 24px 28px 96px; background: var(--bg); color: var(--text); font: 14px -apple-system, BlinkMacSystemFont, sans-serif; }
+body { margin: 0; padding: 0 28px 96px; background: var(--bg); color: var(--text); font: 14px -apple-system, BlinkMacSystemFont, sans-serif; }
 button, input, select { font: inherit; }
 button, select, input[type=search], input[type=text] { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); padding: 9px 12px; }
 button { cursor: pointer; min-height: 36px; }
@@ -78,7 +78,7 @@ dialog::backdrop { background: rgb(0 0 0 / .45); }
 #undo-toast { position: fixed; bottom: max(20px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); width: max-content; max-width: calc(100vw - 24px); display: flex; align-items: center; gap: 16px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); box-shadow: 0 2px 8px #0002; z-index: 5; }
 .group-feedback { margin-top: 16px; color: var(--muted); }
 @media (prefers-color-scheme: dark) { :root { --bg: #1a1a1a; --surface: #252525; --text: #f2f2f7; --muted: #b8bdc5; --line: #51545a; --accent: #8ab4f8; --selected: #344862; --danger: #ffb4ab; } .primary { color: #10233f; } .primary:hover { background: #a9c7fa; } }
-@media (max-width: 650px) { body { padding: 16px 16px 110px; } .search-field { flex-basis: 100%; } .section-heading { align-items: start; flex-direction: column; } .grid-container { gap: 12px; } #undo-toast { gap: 8px; } }
+@media (max-width: 650px) { body { padding: 0 16px 110px; } .search-field { flex-basis: 100%; } .section-heading { align-items: start; flex-direction: column; } .grid-container { gap: 12px; } #undo-toast { gap: 8px; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0s !important; transition-duration: 0s !important; scroll-behavior: auto !important; } }
 
 #context-menu, #context-submenu { position: fixed; inset: auto; margin: 0; padding: 4px; width: 252px; max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); overflow-y: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); box-shadow: 0 10px 40px #0003; }

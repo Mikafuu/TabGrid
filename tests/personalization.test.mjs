@@ -15,7 +15,7 @@ const groups=[{id:7,windowId:1,title:'Research'}];
 function memory(initial={}) {const data=structuredClone(initial);return {data,async get(keys){return keys===null?structuredClone(data):Object.fromEntries([keys].flat().map(k=>[k,structuredClone(data[k])]))},async set(values){Object.assign(data,structuredClone(values));},async remove(keys){for(const key of [keys].flat())delete data[key];},async getBytesInUse(keys){return [keys].flat().reduce((n,k)=>n+(data[k]===undefined?0:Buffer.byteLength(JSON.stringify({[k]:data[k]}))),0)}};}
 function previewFixture(){const f=fixture([{id:1,windowId:1,index:0,active:true,url:'https://one.example/a'},{id:2,windowId:1,index:1,url:'https://two.example/b'}]);f.api.storage.local=memory({[PREFS_KEY]:{...DEFAULTS,previewLimit:1}});return f;}
 
-test('preferences migrate existing choices and fill offline defaults',()=>{const p=migratePreferences({preferredColumns:3,sortMode:'title',inactiveDays:14,swipeClose:true});assert.equal(p.preferredColumns,3);assert.equal(p.undoMs,5000);assert.equal(p.historyEnabled,false);assert.equal('swipeClose' in p,false);assert.equal(p.rememberRootScroll,true);});
+test('preferences migrate existing choices and fill offline defaults',()=>{const p=migratePreferences({preferredColumns:3,sortMode:'title',inactiveDays:14,swipeClose:true});assert.equal(p.preferredColumns,3);assert.equal(p.undoMs,5000);assert.equal(p.historyEnabled,false);assert.equal(p.swipeClose,false);assert.equal(p.rememberRootScroll,true);});
 test('invalid preferences cannot disable all search fields or corrupt limits',()=>{for(const patch of [{matchTitle:false,matchUrl:false},{undoSeconds:0},{undoSeconds:1.5},{previewLimit:1025},{inactiveDays:-1},{historyCount:7},{motion:'custom'},{capture:'yes'}])assert.throws(()=>validatePreferences(patch));});
 test('site matching normalizes URLs and uses domain boundaries',()=>{assert.equal(normalizeHost('HTTPS://EXAMPLE.COM/path'),'example.com');assert.equal(siteMatches('https://a.example.com/x',['example.com']),true);assert.equal(siteMatches('https://notexample.com',['example.com']),false);for(const host of ['*','file:///tmp/a','bad value','https://user:pass@example.com'])assert.throws(()=>normalizeHost(host));});
 test('text matching honors enabled fields and phrase versus words',()=>{const item={title:'Alpha beta',url:'https://example.com/gamma'};assert.equal(textMatches(item,'alpha gamma',{matchMode:'words'}),true);assert.equal(textMatches(item,'alpha gamma',{matchMode:'phrase'}),false);assert.equal(textMatches(item,'example',{matchUrl:false}),false);assert.equal(textMatches(item,'ALPHA',{matchTitle:false}),false);});
@@ -108,9 +108,27 @@ test('automatic search focus stays quiet until a click or typing, independently 
     assert.equal(root.allowed,false);root.interact();assert.equal(root.allowed,true);assert.equal(group.allowed,false);
     group.interact();assert.equal(group.allowed,true);root.automatic();assert.equal(root.allowed,false);root.blur();assert.equal(root.allowed,true);
 });
-test('new drawer defaults are on but existing off and saved lengths survive migration and backup', () => {
-    assert.equal(migratePreferences({}).dropGroups,true);assert.equal(migratePreferences({dropGroups:false}).dropGroups,false);
+test('new drawer defaults are off but existing off and saved lengths survive migration and backup', () => {
+    assert.equal(migratePreferences({}).dropGroups,false);assert.equal(migratePreferences({dropGroups:false}).dropGroups,false);
     const prefs=migratePreferences({[PREFS_KEY]:{dropGroups:false,drawerLength:256}});assert.equal(prefs.drawerLength,256);assert.equal(prefs.dropGroups,false);
     assert.equal(importSettings(exportSettings(prefs)).drawerLength,256);
     for(const length of [0,63,321,128.5])assert.throws(()=>validatePreferences({drawerLength:length}));
+});
+
+test('screenshot quality defaults safely and round-trips in settings backups',()=>{
+    assert.equal(migratePreferences({[PREFS_KEY]:{capture:true}}).previewQuality,40);
+    assert.equal(importSettings(JSON.stringify({format:'TabGrid settings',version:1,preferences:{capture:true}})).previewQuality,40);
+    for(const previewQuality of [20,40,80]){
+        assert.equal(validatePreferences({previewQuality}).previewQuality,previewQuality);
+        assert.equal(importSettings(exportSettings({...DEFAULTS,previewQuality})).previewQuality,previewQuality);
+    }
+    for(const previewQuality of [0,100,41,'80',null])assert.throws(()=>validatePreferences({previewQuality}));
+});
+test('screenshot quality persists across service recreation and cannot be changed in Incognito',async()=>{
+    const f=previewFixture(),url='chrome-extension://test/grid.html';
+    const p=new Personalization(f.api,url);await p.ready;await p.updatePreferences({previewQuality:80});
+    const restored=new Personalization(f.api,url);await restored.ready;assert.equal((await restored.preferences()).previewQuality,80);
+    f.api.extension.inIncognitoContext=true;const privateService=new Personalization(f.api,url);await privateService.ready;
+    await assert.rejects(privateService.updatePreferences({previewQuality:20}),/regular window/);
+    assert.equal((await p.preferences()).previewQuality,80);
 });

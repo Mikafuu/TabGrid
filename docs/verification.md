@@ -901,3 +901,235 @@ behavior remain unverified; the accepted reorder implementation is unchanged.
 - Synthetic browser hover checks passed for quick-pass cancellation, keeping the submenu open across the parent/popup boundary, immediate logical dismissal, delayed first entry and switching (167 ms observed for each 150 ms timer), click not reopening a submenu, and cancellation when the parent menu closes. No browser warnings/errors.
 - 151 automated tests pass; syntax/module and whitespace checks pass. Added regressions cover nested-observer opacity ownership, every-entry delay, duplicate compatibility events, leaving both hover regions, and pending-open cancellation.
 - Evidence: `output/submenu-hover/results.json` and `output/submenu-hover/verified.png`. Browser checks used Classic with simulated extension APIs and synthetic hover events; native extension execution and physical-pointer movement were not tested.
+
+### 2026-10-11 — Preview refresh scheduling
+
+- 164 automated tests pass, including 13 new preview refresh regressions. Syntax/module and whitespace checks pass; the new isolated-world activity script is included in `npm run check`.
+- The actual activity script runs in a VM fixture with controlled visibility, focus, preferences and time. Verified 400 ms settling, 2-second signal spacing, no idle polling, idempotent reinjection, cancellation when hidden/disabled/excluded, and signals containing only their message type.
+- Mock Chrome API tests cover shared capture spacing across windows, latest-request retention, URL/activity/exclusion rechecks after waiting, private-mode isolation, sender/frame validation, request coalescing, final capture before opening, timeout with rejection of a late image, activation/load event wiring, and metadata-only eviction on frequent captures. Existing in-flight clear/navigation/private/cache tests remain passing.
+- No live native Chrome screenshot or installed-extension run was performed for this change. In particular, screenshot latency and real-site event coverage remain to be checked after reloading the extension. Direct tab switches still intentionally use the last cached image.
+- Current API contracts were checked against Chrome's [Tabs API](https://developer.chrome.com/docs/extensions/reference/api/tabs) and [content scripts documentation](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts). No additional extension permissions or runtime libraries were added.
+
+### 2026-10-11 — Faster pre-open preview path
+
+- 170 automated tests and syntax/module checks pass. New regression cases cover fresh-preview reuse, immediate interaction revision changes before debounce, document replacement, age expiry, missing/malformed tracking, the default 250 ms budget including slow initialization, and opening while the storage queue is blocked.
+- A simulated activation after confirmed capture still permits its detached save. Clear, exclusion, navigation and tab closure invalidate pending saves; late screenshots after the opening deadline remain rejected. Existing private-mode, rate-limit, input-signal and cache tests remain passing.
+- The actual activity script is exercised in the VM fixture with the new state-query handler. Its document identity uses getRandomValues, which does not require an HTTPS page. Messages contain only a document token and revision, never keys or form values.
+- These tests verify scheduling and state transitions using simulated Chrome APIs. No live installed-extension latency measurement was performed; the 250 ms value is the capture wait budget, not a claim about total Chrome tab-opening time. Reload the extension to test the new behavior on real pages.
+
+### 2026-10-11 — Screenshot quality preference
+
+- 173 automated tests pass, plus syntax/module and whitespace checks. New regressions verify legacy/default quality, valid/invalid presets, backup round-tripping, persistence across service recreation, Incognito write rejection, and current quality passed to the capture API without replacing existing images at preference-change time.
+- Classic UI fixture verified Standard selected by default, switching to High, hiding the quality control when capture is off, retaining High when re-enabled, and finding the control through settings search. Restored Standard after checks. No browser warnings/errors were recorded.
+- Evidence: `output/preview-quality/settings.png`. Browser checks use simulated extension APIs; native Chrome screenshot quality and real-world capture latency were not measured.
+
+### 2026-10-12 — Final screenshot quality checks
+
+- Classic browser fixture confirmed High persists after a full page reload. Keyboard Tab reaches the quality selector; Space opens it, Arrow Up and Enter select Standard, and Tab continues to the website field. Restored Standard after verification.
+- Desktop settings panel has no horizontal overflow, visible focus remains intact, and no settings errors or browser warnings/errors were recorded. Final screenshot updated at `output/preview-quality/settings.png`.
+- Full automated suite rerun: 173 tests pass; syntax/module and whitespace checks pass. These are fixture checks; native installed-extension capture latency remains unmeasured.
+
+### 2026-10-12 — Custom background verification
+
+- 179 automated tests pass, including bounded asset validation, upload rejection, aspect-preserving dimensions, adjustment ranges and defaults, settings backup exclusion, separate image persistence/removal, and Incognito write rejection. Syntax/module and whitespace checks pass.
+- Classic browser fixture uploaded the repository's preview PNG, converted it to WebP, applied keyboard-controlled transparency and blur live, and preserved the image plus 30% transparency / 5 px blur after reload. Settings search finds Custom background. Removing the image cleared the decorative layer and hid dependent controls. No browser warnings/errors were recorded.
+- Evidence: `output/custom-background/settings.png` (repository image used only as a test background). Browser checks use simulated extension APIs, not an installed native extension. The local manifest retained SHA-256 `e2cf71b2528b5b7ae6788ed50cd0fe5e8622b598ce24f3d706aa9c3056e41a54` throughout implementation.
+
+### 2026-10-12 — Header branding consolidation
+
+- Removed the separate icon/TabGrid brand row, moved the decorative icon beside the existing heading, and removed top page padding. The heading text node remains intact for Incognito labeling; existing header fold and menu handlers are unchanged.
+- Classic browser fixture measured the header at y=0 initially and at scrollY=442; the More menu opened normally after scrolling. No browser warnings/errors. Evidence: `output/header-layout/header.png`. Syntax/module and whitespace checks pass; manifest SHA-256 remains unchanged from the custom-background work.
+
+### 2026-10-12 — Top overscroll fill and filter collapse
+
+- Extended the header's full-width background one viewport above its surface so the header color covers the top elastic-scroll gap. Computed fill top was -720 px in the 720 px fixture viewport. Native macOS trackpad rubber-band behavior cannot be reproduced by the browser fixture and remains a native visual check.
+- Replaced native details/summary filters with a semantic disclosure button and a persistent content wrapper, using the existing auto-animate motion controller for both opening and closing. Main and group filters remove closed content from focus/accessibility immediately and close their open pickers. Expanded picker content remains unclipped.
+- Browser frame sampling confirmed the root collapse progresses from 107 px to 73 px, 43 px, 26 px and finally zero while fading out over approximately 180 ms. Group collapse and keyboard activation were also exercised, plus the expanded website picker. The temporary frame recorder was removed from source afterward.
+- Evidence: `output/filter-collapse/frames.json` and `output/filter-collapse/verified.png`. No browser warnings/errors. All 179 automated tests and syntax/module checks pass; user manifest edits remain unchanged.
+
+### 2026-10-14 — Control and glass state refinements
+
+- All 189 automated tests pass; module/syntax and whitespace checks pass. User manifest SHA-256 remains `e2cf71b2528b5b7ae6788ed50cd0fe5e8622b598ce24f3d706aa9c3056e41a54`. README credits were not changed in this pass.
+- Browser fixture checked real WebGPU wallpaper rendering, full-width rounded glass header (1280 px and 390 px; no narrow horizontal overflow), all nine new-group color choices, transparent selected card hit surfaces, translucent drawer targets, and 16 px inset tint headings. Card tint transition events and advancing GPU frame counters were recorded by a temporary fixture probe, then the probe was removed.
+- Website/group pickers open on focus; arrow clicks focus the same input. Keyboard selection closes the picker and keeps its chosen label. The same website behavior was exercised inside the group dialog. Grid focus outlines are suppressed outside selection mode; settings/dialog focus remains available.
+- Collapsed windows expand after switching Show all windows off and on again. Flat selected-category hover resolves to dark text on a light surface. Filter pills retain rounded corners in Classic, Glass, Neumorphism, and Clay; collapsed glass filters return to their resting tint after leaving hover.
+- CSS fallback was exercised with WebGPU deliberately unavailable, including dark mode. Reduce animations reports zero transition duration. These are simulated-extension browser checks, not native macOS GPU/energy measurements or a complete contrast audit over arbitrary user wallpapers.
+- Evidence: `output/ui-tweaks/group-colors.png`, `drawer.png`, `hover-frames.json`. GPU sampling strategy and context-submenu hover logic were deliberately left unchanged; energy optimization and pointer-intent corridors are recommendations only.
+
+### 2026-10-14 — Glass performance and crop follow-up
+
+- Regression coverage includes wallpaper cache reuse/invalidation and required upload texture usage, clipping at texture edges, crop bounds, retired-style migration, and left/right submenu travel with immediate route cancellation. Existing submenu tests retain the 150 ms opening delay and immediate exit behavior.
+- Real WebGPU browser fixture verified a shared cache of three textures (1x scrolling, 1.5x panels, 2x controls). A repeated 100-frame scroll run reached 600 px with no further wallpaper uploads (count remained 3), restored 1.5x/2x after settling, and stopped rendering while idle (frame count stayed 1411). A temporary fixture recorder was removed afterward. These are rendering counters, not a measurement of macOS energy use.
+- Browser fixture exercised diagonal pointer travel into a left-opening submenu, restored red destructive actions, glass search/speed tint styles, 8 px search-result corners, crop dragging and keyboard adjustment, and crop persistence after reload. The crop preview uses scaled overscan/blur to match the page. Classic was selected during the final layout checks.
+- Collapsed windows remained collapsed after toggling Show all windows off/on and after reload. With both windows collapsed, document/viewport heights were both 827 px; scrolling upward left scrollY and header top at 0. Native macOS trackpad rubber-band behavior remains a device check. Expanded window content computes to overflow: clip with a 6 px clip margin.
+- Evidence: `output/glass-performance-crop/scroll-check.json`, `crop-controls.png`, and `short-page.png`. Browser tests use simulated extension APIs. No production Chrome tabs or groups were changed.
+- Final checks: 195/195 automated tests pass; syntax/module and whitespace checks pass. Glass with 161% crop zoom and blur also rendered in dark mode without warnings/errors. The fixture was restored to Classic/Light. User-edited manifest SHA-256 remains `e2cf71b2528b5b7ae6788ed50cd0fe5e8622b598ce24f3d706aa9c3056e41a54`; existing README credits were preserved.
+
+## 2026-10-15 — Gestures and menu checks
+
+Automated coverage includes swipe direction/distance/time thresholds, input choices, preference defaults and backup round trips, grouping compatibility, hover dwell/re-entry cancellation, narrow panel margins, continuation, Escape cancellation, and independent native-popup animation ownership.
+
+Browser checks used `tests/preview-server.mjs` and `?design&previews&gestureProbe`. The opt-in gesture probe synthesizes pointer/mouse/wheel events through the real UI handlers, Sortable, and the simulated Chrome tab API; it does not operate on real Chrome tabs.
+
+- Tab → existing group: Research changed from 2 to 3 members; pending → ready feedback appeared before release.
+- Tab → ungrouped tab: the New tab group dialog opened.
+- An 80 ms pass over a grouping target remained pending and made no grouping change.
+- Release outside a group before continuation ungrouped its member. Holding outside closed the group panel and continuing onto Design references transferred the member (5 → 6 members).
+- Short mouse swipe kept Music open; a deliberate mouse swipe closed only Music. A sustained horizontal wheel sequence with trailing momentum also closed exactly one card and displayed Undo.
+- First submenu opening: Classic parent opacity remained 1 across 24 frames; Flat remained visible with constant height (minimum 0.988 while its initial opening fade finished). No disappearance or parent replay was observed.
+- Glass context menu inner scroll range stayed 0–339 px across repeated overscroll attempts (657 px contents, 318 px viewport). The last action ended at the inner viewport edge; scrolling back clamped to zero. The optical canvas remained a direct child of the fixed menu frame.
+- Settings search jump highlight count changed from 1 to 0 after clicking the dialog heading. Tint gallery order and conditional battery note were checked in the settings UI.
+- Dark-mode favicon backing computed to `rgb(245, 245, 245)` with 2 px padding.
+
+These are automated and browser-fixture checks. Physical touchpad behavior, platform navigation gestures, and live Chrome extension drag operations still warrant device testing. Browsers expose touchpad swipes as horizontal wheel events, so horizontal wheel hardware follows the same setting.
+
+The interaction model uses separate swipe, merge, and ungroup thresholds, informed by Chromium's mobile TabGrid callback, with desktop-specific values rather than claiming identical mobile thresholds: https://chromium.googlesource.com/chromium/src/+/refs/tags/135.0.7012.3/chrome/android/features/tab_ui/java/src/org/chromium/chrome/browser/tasks/tab_management/TabGridItemTouchHelperCallback.java
+
+Final checks: `npm run check`, `npm test` (204/204 passing), and `git diff --check` passed. Classic settings screenshot: `output/gesture-menu-fixes/settings.png`. The existing local `manifest.json` SHA-256 remained `e2cf71b2528b5b7ae6788ed50cd0fe5e8622b598ce24f3d706aa9c3056e41a54`.
+
+## 2026-10-15 — Touchpad swipe follow-up
+
+- Deterministic controller tests cover content direction, pause/reversal, zero opacity at threshold, single-close momentum suppression, failure recovery, outside-click/vertical-scroll reset, and mouse hold versus quick swipe. Layout tests cover preserving a parked swipe during refresh.
+- Classic and Glass browser fixtures: +45 horizontal wheel delta produced -45 px translation and 0.662542 opacity; both stayed unchanged after a 650 ms pause. Reversing 15 px produced -30 px and 0.775028 opacity. Swipe z-index was 50, pseudo indicator was absent, scrollX stayed 0, and document width stayed 1280 px (equal to viewport).
+- Both styles reached computed opacity 0 before closing the front card. The neighboring card preview remained the same DOM node after removal. These checks validate behavior and reduced DOM churn, not a physical-device latency benchmark.
+- Evidence: `output/swipe-followup/parked-classic.png` and `browser-checks.json`. Tests use synthetic wheel events and simulated Chrome APIs; physical trackpad momentum and browser navigation gestures still require device testing.
+- Final checks: syntax/module validation, 210/210 automated tests, and whitespace validation passed. The manifest hash remains unchanged from the user's local edit. The test fixture was returned to Classic style.
+
+## 2026-10-15 — Settings help and interrupted close motion
+
+- Browser fixture: session tip appears beside Remember your place; Escape dismisses the tip while settings remain open. Clicking swipe help leaves its switch unchanged; clicking the settings heading dismisses help. Accessible setting names exclude info-icon text.
+- Classic and Flat tips use their surface colors; Flat has 6 px corners and no shadow. Glass tip computes 86% surface fill with 12 px blur and contains no optical canvas. Background, preview, grouping, history, keyboard and backup tips have explicit related anchors.
+- Recorded frame-by-frame close reproduction: Music moved from x=848.27 toward x=449.73, then jumped backwards from x=539.16 to x=1246.80 during a refresh. After fixing removal flow and stale captures, its Classic trajectory moved from 848.27 to 449.73 with a measured maximum backward jump of 0 px across 92 frames.
+- Automated regressions cover retired-node layout, capture expiry and reported momentum restoring partial swipes without closing tabs. Native physical touchpad release is not claimed to be universally detectable.
+- The Glass close recording also had a maximum backward jump of 0 px across 92 frames. Evidence: `output/settings-help-motion/close-traces.json` and `settings-help.png`. These recordings use simulated Chrome APIs.
+- Final validation: syntax/module checks and 212/212 automated tests passed. The settings fixture was restored to Classic; drag grouping was researched but not changed in this follow-up.
+
+## 2026-10-16 — Chrome-style grouping and consecutive swipes
+
+- Regression tests cover strict 50% overlap (including unequal card sizes and off-center grab points), immediate highlighting without dwell, cancellation on leaving targets, bottom-only removal, re-entry, Escape, and disabled grouping.
+- Browser fixture: an 80 ms overlap drop added a tab to Research (2 → 3 members). Dropping on an ungrouped tab opened name/color setup. Releasing outside the side left the group unchanged; entering the bottom removal area then returning cancelled removal. The remaining group stayed open after removing one member; the empty panel closed automatically after the final member was removed.
+- Classic and Glass: three consecutive synthetic physical-input → momentum sequences on the same card each moved it -35 px, returned, and accepted the next swipe without clicks, cursor movement or a timer wait. Both settled to no translation and opacity 1. Automated tests also cover delayed lock cleanup and duplicate-close prevention while a close is pending.
+- The removal label stays above the fallback card, with style-aware surfaces and Escape cancellation. Evidence: `output/chrome-grouping/removal-classic.png`, `removal-glass.png`, `browser-checks.json`, and `final-removal.json`.
+- Syntax/module checks, 216/216 automated tests and whitespace validation pass. The preview was restored to Classic. Manifest SHA-256 remains `e2cf71b2528b5b7ae6788ed50cd0fe5e8622b598ce24f3d706aa9c3056e41a54`; README credits were preserved.
+- These are browser-fixture checks with simulated Chrome APIs and synthetic wheel events, not physical trackpad validation. Pause-then-lift without momentum remains unobservable to the extension; no idle reset was added because it would also reset a card while fingers remain on the pad.
+
+## 2026-10-16 — Help alignment and group continuation
+
+- Syntax/module checks and 218/218 automated tests pass. Added coverage for the outside-hold timer, re-entry/release cancellation, continued group targeting, empty-space removal, and Escape cancellation.
+- Browser fixture: holding Research notes outside its panel closed the panel without ending the drag; continuing to Design references transferred the member (5 → 6). Continuing the remaining Research member onto empty space ungrouped it and closed the empty panel.
+- Classic tooltip measurements: button 18 × 18 px, caption gap 4 px, vertical center difference under 0.01 px; tooltip begins 8 px to the right. Glass also opens to the right and retains its 86% surface fill and 12 px blur. Escape dismisses help while settings remain open.
+- The appearance gallery visibly places “Color tint: Calm editorial” directly under “Color tint.” Evidence: `output/settings-refinements/help-classic.png`, `help-glass.png`, and `tint-order.png`.
+- Browser checks use simulated Chrome APIs and authored drag probes. The preview was restored to Classic. Root grouping detection was not changed; the restored continuation is a TabGrid desktop feature.
+
+## 2026-10-16 — Group/reorder distinction
+
+- Syntax/module checks and 223/223 automated tests pass. Boundary tests cover all four directions, exact-edge versus crossing, approach/overlap insertion blocking, reversed moves after stable slots change, and grouping when sorting/search prevents manual reorder.
+- Real Sortable browser fixture: overlapping Research retained the original order and showed “Release to add to this group.” Moving 40 px beyond center crossed the far edge, changed order, and cleared the grouping state. Repeating in the reverse direction restored the original order. Release preserved each reordered sequence.
+- The row-to-row fixture likewise retained order over Reading queue, then moved TabGrid project after it once the lower far edge was crossed. An initial probe was obstructed by its test toolbar; rerunning with that toolbar hidden verified the row transition.
+- Releasing after an 80 ms overlap increased Research from 2 to 3 members. Holding a member outside its panel then continuing onto Design references transferred it (5 to 6 members). These checks use simulated Chrome APIs and synthetic pointer input, not an Android device comparison.
+- Evidence: `output/group-reorder/overlap.png` and `browser-checks.json`. Existing visual motion ownership and the user's local manifest remain unchanged.
+
+## 2026-10-17 — Prevent premature edge-entry reordering
+
+- Reproduced a diagonal next-row approach where the pointer reached only 1 px inside the target's top edge, but crossing its unrelated side edge authorized a Sortable insertion. Before the fix, TabGrid project moved after Design references; the identical probe after the fix retained the original order.
+- The corrected gate uses horizontal far edges within a row and vertical far edges between rows, with a 1 CSS px tolerance. Automated regressions cover diagonal approaches in both vertical directions, unequal heights, fractional positions, and the controller's pre-insertion decision.
+- Browser fixture: deeper diagonal overlap highlighted Design references without moving neighbors; crossing its lower far edge reordered. Same-row overlap and horizontal far-edge reorder also passed. Releasing over Design references added a member (5 to 6); holding a Research member outside its panel and continuing onto Design references transferred it (6 to 7).
+- Escape from the held diagonal overlap restored the initial order and cleared both the dragging class and target feedback. Evidence: `output/group-edge-fix/diagonal-grouping.png` and `browser-checks.json`.
+- Syntax/module checks, 226/226 automated tests, and whitespace validation pass. Browser checks used the real Sortable integration with simulated Chrome APIs and authored pointer probes, not physical-device testing. Existing manifest edits and README credits were preserved.
+
+## 2026-10-17 — Touchpad category navigation
+
+- Removed obsolete touchpad-close regressions and added category navigation coverage: threshold, reversal, hidden categories, no wrapping, one transition per gesture, momentum suppression, header boundary, scrolling, modifiers, blocked UI, and legacy input-preference migration. Mouse close, hold-to-reorder, failed-close recovery, and duplicate-close protection remain covered.
+- Browser fixture verified Tabs → Recently closed → Tabs with Idle disabled, then Tabs → Idle → Recently closed after enabling Idle. Fourteen-event horizontal bursts changed category once and never marked a card as swiped. Above-header and vertical probes did not prevent scrolling or change category.
+- Short mouse drag returned Music to its original position; a full mouse drag closed it and showed Undo. Settings show Swipe to close cards with revised help and no Swipe using selector.
+- Evidence: `output/category-swipe/settings.png` and `browser-checks.json`. Browser verification uses simulated Chrome APIs and authored wheel/pointer events; physical touchpad testing was not performed. Wheel events do not uniquely identify device type, so horizontal pixel-wheel input is the navigation signal.
+- Final syntax/module validation, 226/226 automated tests, probe syntax, and whitespace checks passed. README credits and the user's manifest edits were preserved.
+
+## 2026-10-17 — Category, settings and drag visual refinements
+
+- Browser fixture recorded horizontal category motion in Classic, Flat and Glass, ending at opacity 1 and no transform. Reduced motion recorded no translation or fade throughout. Glass pill width settled to the selected button within 0.02 CSS px; unit coverage also checks fractional geometry and dragged pill sizing.
+- Group entry recorded inner content translating from 12 px to rest while the dialog transform remained `none`. Native-entry regression verifies separate inner-content and outer-dialog effects.
+- Classic appearance measurements: title-to-subtitle gap 16 px, subtitle-to-cards gap 16 px, tint indent 12 px. Filter radius measured 8 px for Classic and 6 px for Flat; Glass retains its material pill radius.
+- Held overlap: target surface scale .9 with stationary 3 px slot outline. With swipe closing enabled, fallback scale .94; with it disabled, fallback scale and transform both `none`, while the target still scales .9. Escape removes the overlap state. Regression confirms tray grouping remains separate from overlap feedback.
+- Evidence: `output/interaction-polish/appearance.png`, `overlap.png`, and `browser-checks.json`. Browser checks use simulated Chrome APIs and authored gesture probes, not physical touchpad validation.
+- Final syntax/module checks, 231/231 automated tests, probe syntax, and whitespace validation passed. The preview was returned to Classic with animations enabled. Local manifest edits and README credits remain preserved.
+
+## 2026-10-17 — Hold lift, source-card group morph, and cursor removal
+
+- Syntax/module checks, 240/240 automated tests, and whitespace validation pass. New regressions cover hold-before-movement lift, release restoration, fallback scale continuity, source geometry, rapid reversal, source absence, reduced motion, actual animation completion, cursor-only removal bounds, and overhanging cards that must not trigger removal/continuation.
+- Browser fixture recorded a source card shrinking smoothly from 1 to .94 after the hold threshold with no pointer movement and no fallback copy. Release restored its size and removed the lift marker. The help tooltip contains only the requested opening sentence.
+- Classic, Flat, and Glass group close checks retained the native modal through the last animation frames, reached the source card bounds, then closed and restored focus to the group button (about 414–454 ms in standard speed). Opening returns to an untransformed panel; rapid reversal removes its temporary preview. Reduced animations leaves no group transform.
+- Cursor probe: a card extended below the remove bar while its cursor remained 12 px above it; removal stayed inactive. Moving the cursor into the bar armed removal. The card's fallback layer is 100000 versus the bar's 25. In-panel status text measured transparent background, no shadow, and zero border.
+- Holding outside the panel still closed it during the active drag, continued on the root grid, and releasing on empty space ungrouped the member. These checks use the real Sortable integration with simulated Chrome APIs and authored pointer probes, not physical Android/device validation.
+- Evidence: `output/group-motion-followup/swipe-help.png`, `remove-bar.png`, and `browser-checks.json`. Existing README credits and user manifest edits were preserved.
+
+## 2026-10-18 — Group animation refinements
+
+- Full suite: 244/244 tests and syntax/module checks passed. Focused follow-up: 31/31 group-transition, tab-motion, and tab-focus tests passed, including frozen backdrop paint during native dismissal, canceled preview exclusion, and stale scaled layout baselines.
+- Classic browser fixture recorded intermediate backdrop colors and blur values in both directions. The temporary snapshot border is 0 px. Smooth close retained the modal until about 430 ms and reached the source bounds before dismissal.
+- A 35-frame drag-start probe kept the neighboring card at identical coordinates, opacity 1, and transform none.
+- The animated handoff fixture kept the fallback card visible while a noninteractive panel copy reversed; the source preview immediately omitted Research notes. Canceling restored both original preview titles and reopened the group.
+- Glass remove-bar ready state measured 64% tint opacity, blur(12px) saturate(1.35), and the existing glass sheen. Its layer remained 25 below the dragged card's 100000. Cursor-only removal boundaries still passed.
+- Evidence: `output/group-motion-refinements/group-morph.png`, `glass-remove-bar.png`, and `browser-checks.json`. Browser checks use the local fixture, real Sortable integration, simulated Chrome APIs, and authored pointer probes; physical-device behavior has not been tested.
+
+
+## 2026-10-18 — Confirmed audit corrections
+
+- `npm test`: 245 passing; `npm run check` and `git diff --check` pass.
+- Added regression coverage for pinned grouping eligibility, rejection before
+  any mutation, and preserving pinned cross-window moves. The existing pinned
+  rejection expectation now checks the specific unpin message.
+- An isolated browser fixture exercised 12 checks against the real page handlers:
+  effective columns at 650 px, restoring the preference at 1000 px, resize back,
+  empty pinned areas at rest/during/after a synthetic Sortable drag, group drawer
+  suppression/restoration, settings-search focus, and reset speed/state sync.
+  All 12 passed. These are simulated tabs and synthetic drag events, not native
+  Chrome tab operations or physical-device input.
+- Visually checked the wallpaper readability changes in Glass dark, Flat light,
+  and Classic light. Bright wallpaper is retained while the toolbar, window
+  headings, and section labels get readable backings. Existing no-wallpaper
+  layouts do not acquire the toolbar/section backings.
+- Current behavior is documented in `docs/appearance.md` and
+  `docs/chrome-grid-interaction-research.md`; Chromium is credited in README.
+  Existing dependency/font/icon notices remain intact. No project-wide license
+  was chosen, and no claim about ownership of project imagery was added.
+- Native Chrome event timing, physical touchpad momentum, and GPU/battery
+  measurements remain outside this verification. The iframe test harness emitted
+  MutationObserver warnings on navigation; the normal top-level preview had no
+  recorded runtime errors during these checks. This is not a claim that every
+  animation edge case is resolved.
+
+
+### 2026-10-19 — Filter bounds, bare toolbar captions, and wallpaper panning
+
+- Supersedes the toolbar backing from the preceding audit fixes: removed that
+  backing and added local wallpaper-dependent foreground colors to its captions
+  and card-count output. Section label backings are unchanged.
+- Separated filter option scrolling from the popover's decorative glass layer;
+  horizontal overflow is clipped and vertical overscroll is disabled.
+- Corrected both CSS image positioning and pointer-drag calculations to include
+  the image cropped away by overscan. The centered crop is preserved.
+- `npm test`: 247 passing; module/syntax and whitespace checks passed.
+- Browser fixture: 24 passing checks covering black/white wallpaper caption
+  colors, vertical endpoints at 100% zoom, preview/page crop agreement, toolbar
+  transparency, and both picker kinds in Classic/Flat/Glass (30 options, repeated
+  end/top scrolling, and filtering down to one option).
+- Evidence: `output/background-filter-fixes/browser-checks.json`, `checks.html`,
+  and `glass-toolbar.png`. The top-level preview recorded no runtime errors.
+  Browser tests use simulated Chrome APIs; native macOS elastic trackpad scrolling
+  and the user's original wallpaper file were not available for direct testing.
+
+### 2026-10-19 — Minimum background crop at 100%
+
+- Removed the fixed 192px image-box enlargement from the page and preview.
+  100% now means the minimum cover fit; only aspect-ratio cropping remains.
+  Removed the corresponding overscan offsets and drag calculations.
+- Regression tests cover matching proportions (no crop/pan), portrait and wide
+  images (pan only the overflowing axis), and preview/page drag scaling.
+- 247 automated tests, module/syntax checks, and whitespace checks passed.
+  The browser fixture passed 24 checks; a 1600×1200 image in an 1100×760 viewport
+  now renders at 1100×825 instead of 1292×969. Its vertical pan range is 65px,
+  exactly the aspect-ratio overflow. The settings Reset crop action displayed
+  100% zoom and 50% positions.
+- Evidence: `output/minimum-background-crop/browser-checks.json` and `preview.png`.
+  These are fixture checks with simulated Chrome APIs.

@@ -1,3 +1,4 @@
+import { captureBeforeOpen, installPreviewRefresh } from './lib/preview-refresh.mjs';
 import { WindowOrder } from './lib/window-order.mjs';
 import { Personalization } from './lib/personalization.mjs';
 import { TabActions } from './lib/tab-actions.mjs';
@@ -6,6 +7,7 @@ import { isGridUrl } from './lib/tab-model.mjs';
 const gridUrl = chrome.runtime.getURL('grid.html');
 const actions = new TabActions(chrome, gridUrl);
 const personalization = new Personalization(chrome, gridUrl);
+const previewRefresh = installPreviewRefresh(chrome, personalization);
 let queue = Promise.resolve();
 const windowOrder = new WindowOrder(chrome, actions.private);
 const seedWindows = () => windowOrder.snapshot();
@@ -15,8 +17,12 @@ chrome.windows.onRemoved.addListener(id=>{const task=()=>windowOrder.removed(id)
 chrome.action.onClicked.addListener(async tab => {
     const remember = () => actions.rememberOpened(`tab:${tab.id}`);
     queue = queue.then(remember, remember);
-    await queue.catch(() => {});
-    const existing = (await chrome.tabs.query({ windowId: tab.windowId })).find(t => isGridUrl(t.url, gridUrl));
+    queue.catch(() => {});
+    await captureBeforeOpen(personalization, tab);
+    const tabs = await chrome.tabs.query({ windowId: tab.windowId });
+    // Do not override another tab switch made while the final capture waited.
+    if (tabs.find(t => t.active)?.id !== tab.id) return;
+    const existing = tabs.find(t => isGridUrl(t.url, gridUrl));
     if (existing) await chrome.tabs.update(existing.id, { active: true });
     else await chrome.tabs.create({ url: gridUrl, windowId: tab.windowId });
 });
@@ -24,6 +30,10 @@ chrome.action.onClicked.addListener(async tab => {
 // A restored grid is an ordinary extension page. Never close unrelated tabs or
 // hijack Chrome's restore shortcut. Keep the grid available when switching tabs.
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
+    if (message?.type === 'tabgrid-preview-activity') {
+        previewRefresh.fromPage(message, sender).then(() => respond({}));
+        return true;
+    }
     if (sender.id !== chrome.runtime.id || !isGridUrl(sender.url, gridUrl) || message?.type !== 'tabgrid-action') return;
     const run = async () => {
         const { action, args = [] } = message;
@@ -32,6 +42,7 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         if (action === 'preferences') return personalization.preferences();
         if (action === 'updatePreferences') return personalization.updatePreferences(args[0]);
         if (action === 'searchHistory') return personalization.history(...args);
+        if (action === 'background') return personalization.background(...args);
         if (action === 'preview') return personalization.preview(...args);
         if (action === 'importSettings') return personalization.import(...args);
         if (action === 'protectedGroups') return personalization.protectedGroups(...args);
@@ -58,15 +69,6 @@ chrome.tabs.onActivated.addListener(info => {
 });
 chrome.tabs.onUpdated.addListener((id, change, tab) => { if (change.url && tab.active) recordActivity([id]); });
 
-chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.tabgridPreferences) { personalization.previews.invalidate(); if (!actions.private) personalization.ready.then(() => personalization.previews.reconcile()).catch(() => {}); }
-});
-chrome.tabs.onActivated.addListener(info => { personalization.previews.invalidate(); if (!actions.private) setTimeout(() => personalization.ready.then(() => personalization.previews.capture(info.tabId)).catch(() => {}), 500); });
-chrome.tabs.onUpdated.addListener((id, change, tab) => {
-    if (!actions.private && !tab.incognito && change.url) personalization.previews.clear(id).catch(() => {});
-    if (!actions.private && change.status === 'complete' && tab.active) personalization.ready.then(() => personalization.previews.capture(id)).catch(() => {});
-});
-chrome.tabs.onRemoved.addListener(id => { if (!actions.private) personalization.previews.clear(id).catch(() => {}); });
 chrome.tabGroups.onRemoved.addListener(group => {
     personalization.protectedGroups().catch(() => {});
     chrome.storage.session.remove(`tabgridGroupView:${actions.private ? 'private' : 'regular'}:${group.id}`).catch(() => {});

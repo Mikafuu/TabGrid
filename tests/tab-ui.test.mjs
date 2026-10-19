@@ -31,6 +31,8 @@ test('selection blocks drag even after clearing cards, and groups never enter ta
     assert.equal(selectionActive(false, new Set(['tab:1'])), true);
     assert.equal(selectionActive(false, new Set()), false);
     assert.equal(acceptsGroupDrop({ dataset: { kind: 'tab', key: 'tab:1' } }), true);
+    assert.equal(acceptsGroupDrop({dataset:{kind:'tab',key:'tab:1'},itemModel:{tab:{pinned:true}}}), false);
+    assert.equal(acceptsGroupDrop({dataset:{kind:'tab',key:'tab:1'},itemModel:{tab:{pinned:false}}}), true);
     for (const dataset of [{kind:'group',key:'group:1'},{kind:'tab',key:'group:1'},{kind:'tab',key:'tab:NaN'}]) assert.equal(acceptsGroupDrop({dataset}), false);
 });
 test('size preferences migrate and clamp; idle defaults to Never without discarding explicit choices', () => {

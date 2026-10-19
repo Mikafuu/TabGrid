@@ -14,7 +14,7 @@ test('drag and reorder policies distinguish group-only scope from hidden interve
 test('defaults and backups migrate milliseconds without discarding saved card sizing',()=>{
     assert.equal(DEFAULTS.preferredColumns,4);assert.equal(DEFAULTS.undoMs,5000);
     const prefs=migratePreferences({[PREFS_KEY]:{undoSeconds:13,preferredColumns:6,swipeClose:true}});
-    assert.equal(prefs.undoMs,13000);assert.equal(prefs.preferredColumns,6);assert.equal('swipeClose' in prefs,false);assert.equal('undoSeconds' in prefs,false);
+    assert.equal(prefs.undoMs,13000);assert.equal(prefs.preferredColumns,6);assert.equal(prefs.swipeClose,true);assert.equal('undoSeconds' in prefs,false);
     assert.equal(importSettings(exportSettings({...prefs,undoMs:7250,showWindow:true,showGroup:false})).undoMs,7250);
     for(const undoMs of [0,300001,1.5])assert.throws(()=>validatePreferences({undoMs}));
 });

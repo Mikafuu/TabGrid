@@ -17,7 +17,7 @@ test('group drop supports multiple tabs and ungrouping while rejecting stale or 
     const id=await f.actions.dropIntoGroup([1,2],'new',1);
     assert.equal(f.tabs().filter(t=>t.groupId===id).length,2);
     assert.ok(f.local.tabActivity.find(r=>r.url === 'https://example.com/1').at >= Date.now() - 1000);
-    await assert.rejects(f.actions.dropIntoGroup([4],7,1),/changed/);
+    await assert.rejects(f.actions.dropIntoGroup([4],7,1),/Unpin selected tabs/);
     await assert.rejects(f.actions.dropIntoGroup([1,99],7,1),/changed/);
     await assert.rejects(f.actions.dropIntoGroup([1,1],7,1),/changed/);
     await assert.rejects(f.actions.dropIntoGroup([1],999,1),/No group/);

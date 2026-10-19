@@ -18,3 +18,28 @@ test('feedback reuses stable anchors and cleans up disposable copy effects',asyn
     feedback.reset();assert.equal(ghost.dataset.dropFeedback,undefined);assert.ok(cancelled.includes(surface));
     ghost={...make(),querySelectorAll:()=>[surface]};feedback.start('tab');feedback.destination('new');assert.equal(plays.at(-1)[3].anchor,anchor);assert.equal(doc.body.children.length,1);
 });
+
+test('overlap shrinks the target while tray feedback keeps shrinking the fallback',async()=>{
+    const {createDropFeedback}=await import('../lib/drop-feedback.mjs');const plays=[];
+    const make=()=>({dataset:{},setAttribute(){},append(){}}),surface={},targetSurface={};
+    const ghost={...make(),querySelectorAll:()=>[surface],querySelector:()=>surface};
+    const target={querySelector:()=>targetSurface};
+    const feedback=createDropFeedback({doc:{createElement:make,body:make(),addEventListener(){}},getGhost:()=>ghost,motion:{cancel(){},play:(...args)=>plays.push(args)},style:()=>({scale:'1',transform:'none',opacity:'1'})});
+    feedback.start('tab',true);assert.equal(ghost.dataset.dragLift,'');
+    feedback.direct('7',target);assert.equal(ghost.dataset.dropFeedback,undefined);assert.equal(plays.at(-1)[1],targetSurface);assert.equal(plays.at(-1)[2][1].scale,'.9');
+    feedback.direct(null);assert.equal(plays.at(-1)[2][1].scale,'1');
+    feedback.destination('7');assert.equal(ghost.dataset.dropFeedback,'group');
+    feedback.reset();delete ghost.dataset.dragLift;feedback.start('tab',false);assert.equal(ghost.dataset.dragLift,undefined);
+});
+
+test('hold chooses and smoothly lifts the source before a fallback exists, then restores on release',async()=>{
+    const {createDropFeedback}=await import('../lib/drop-feedback.mjs');const plays=[];
+    const make=()=>({dataset:{},setAttribute(){},append(){}}),surface={};
+    const card={...make(),querySelector:()=>surface};let ghost=null;
+    const feedback=createDropFeedback({doc:{createElement:make,body:make(),addEventListener(){}},getGhost:()=>ghost,motion:{cancel(){},play:(...args)=>plays.push(args)},style:()=>({scale:'.97'})});
+    feedback.choose(card,true);assert.equal(card.dataset.dragLift,'');assert.deepEqual(plays.at(-1)[2],[{scale:'.97'},{scale:.94}]);
+    const ghostSurface={};ghost={...make(),querySelector:()=>ghostSurface};feedback.start('tab',true);
+    assert.equal(plays.at(-1)[1],ghostSurface);assert.equal(plays.at(-1)[2][0].scale,'.97');
+    feedback.unchoose();assert.equal(card.dataset.dragLift,undefined);assert.equal(plays.at(-1)[2][1].scale,1);
+    const count=plays.length;feedback.choose(card,false);feedback.unchoose();assert.equal(plays.length,count);
+});

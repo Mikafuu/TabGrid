@@ -4,6 +4,8 @@ import { Personalization } from '../lib/personalization.mjs';
 import { TabActions } from '../lib/tab-actions.mjs';
 import { fixture } from './chrome-mock.mjs';
 const gridUrl = new URL('/grid.html', location.href).href;
+// Test-only capability failure, before the application mounts its renderer.
+if(new URLSearchParams(location.search).has('no-gpu')) Object.defineProperty(navigator,'gpu',{value:undefined,configurable:true});
 const f = fixture([
     {id:1,windowId:1,index:0,title:'Pinned documentation',pinned:true,url:'https://developer.chrome.com/docs/extensions'},
     {id:2,windowId:1,index:1,title:'TabGrid project',url:'https://github.com/Mikafuu/TabGrid'},
@@ -51,7 +53,7 @@ api.bookmarks = {
 api.readingList = { async query() { return []; }, async addEntry() {} };
 api.storage.onChanged=event();
 const local=JSON.parse(localStorage.getItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local')||'{}');
-api.storage.local={ async get(keys){ return Object.fromEntries((Array.isArray(keys)?keys:typeof keys === 'string'?[keys]:Object.keys(local)).map(k=>[k,local[k]])); }, async set(values){ const changes=Object.fromEntries(Object.entries(values).map(([k,v])=>[k,{newValue:v}]));Object.assign(local,values);localStorage.setItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local',JSON.stringify(local));api.storage.onChanged.emit(changes,'local'); },async remove(key){for(const k of [key].flat())delete local[k];localStorage.setItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local',JSON.stringify(local));} };
+api.storage.local={ async get(keys){ return Object.fromEntries((Array.isArray(keys)?keys:typeof keys === 'string'?[keys]:Object.keys(local)).map(k=>[k,local[k]])); }, async set(values){ const changes=Object.fromEntries(Object.entries(values).map(([k,v])=>[k,{newValue:v}]));Object.assign(local,values);localStorage.setItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local',JSON.stringify(local));api.storage.onChanged.emit(changes,'local'); },async remove(key){const changes={};for(const k of [key].flat()){changes[k]={oldValue:local[k]};delete local[k];}localStorage.setItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local',JSON.stringify(local));api.storage.onChanged.emit(changes,'local');} };
 Object.assign(f.storage,JSON.parse(sessionStorage.getItem('tabgrid-fixture-session')||'{}'));
 const originalSet=api.storage.session.set;
 api.storage.session.set=async data=>{await originalSet(data);sessionStorage.setItem('tabgrid-fixture-session',JSON.stringify(Object.fromEntries(Object.entries(f.storage).filter(([k])=>k.startsWith('tabgridView:')||k.startsWith('tabgridGroupView:')||k==='tabgridProtectedGroups'))));api.storage.onChanged.emit(Object.fromEntries(Object.entries(data).map(([k,v])=>[k,{newValue:v}])),'session');};
@@ -78,12 +80,27 @@ if (new URLSearchParams(location.search).has('offline') && !privateMode) {
     await api.storage.local.set({screenshot_2:`data:image/svg+xml;base64,${btoa(svg)}`});
 }
 const personalization=new Personalization(api,gridUrl);
+// Opt-in wallpaper fixture for real WebGPU optics; no user image or flag needed.
+if (new URLSearchParams(location.search).has('liquid')) {
+    const wallpaper=document.createElement('canvas');wallpaper.width=1200;wallpaper.height=900;
+    const ctx=wallpaper.getContext('2d');
+    ctx.fillStyle='#d2e8e6';ctx.fillRect(0,0,1200,900);
+    for(let x=-864;x<1600;x+=72){ctx.fillStyle=(x/72)%2===0?'#7faeae':'#f7eedb';ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x+32,0);ctx.lineTo(x+932,900);ctx.lineTo(x+900,900);ctx.closePath();ctx.fill();}
+    await personalization.ready;
+    await personalization.updatePreferences({visualStyle:'glass',colorMode:'light',backgroundTransparency:15,backgroundBlur:0});
+    await personalization.background('set',{name:'Liquid glass test stripes.webp',dataUrl:wallpaper.toDataURL('image/webp',.95)});
+}
 const windowOrder=new WindowOrder(api,privateMode);
 api.commands={async getAll(){return [{name:'_execute_action',shortcut:''}];}};
 let messageQueue=Promise.resolve();
-api.runtime={getURL(path){return new URL(path.startsWith('/')?path:'/'+path,location.href).href;},async sendMessage(message){const work=async()=>{try{const a=message.action,args=message.args||[];const methods={windowOrder:()=>windowOrder.snapshot(),preferences:()=>personalization.preferences(),updatePreferences:()=>personalization.updatePreferences(args[0]),searchHistory:()=>personalization.history(...args),preview:()=>personalization.preview(...args),importSettings:()=>personalization.import(...args),protectedGroups:()=>personalization.protectedGroups(...args)};if(methods[a])return {result:await methods[a]()};return {result:message.action==='undo'?await f.actions.undo(message.args[0],99):await f.actions[message.action](...message.args)};}catch(error){return {error:error.message};}};const pending=messageQueue.then(work,work);messageQueue=pending.catch(()=>{});return pending;}};
+api.runtime={getURL(path){return new URL(path.startsWith('/')?path:'/'+path,location.href).href;},async sendMessage(message){const work=async()=>{try{const a=message.action,args=message.args||[];const methods={windowOrder:()=>windowOrder.snapshot(),preferences:()=>personalization.preferences(),updatePreferences:()=>personalization.updatePreferences(args[0]),searchHistory:()=>personalization.history(...args),background:()=>personalization.background(...args),preview:()=>personalization.preview(...args),importSettings:()=>personalization.import(...args),protectedGroups:()=>personalization.protectedGroups(...args)};if(methods[a])return {result:await methods[a]()};return {result:message.action==='undo'?await f.actions.undo(message.args[0],99):await f.actions[message.action](...message.args)};}catch(error){return {error:error.message};}};const pending=messageQueue.then(work,work);messageQueue=pending.catch(()=>{});return pending;}};
 globalThis.chrome=api;
 const panel=document.createElement('div');panel.style.cssText='padding:12px;border:1px dashed #808080;margin:12px 0;height:180px;overflow:auto';panel.textContent='UI test sandbox — simulated tabs only. ';
+if(new URLSearchParams(location.search).has('liquid')) {
+    const probe=document.createElement('output');probe.id='test-liquid-capabilities';
+    probe.textContent=JSON.stringify({webgpu:Boolean(navigator.gpu),htmlCapture:typeof GPUQueue!=='undefined'&&typeof GPUQueue.prototype.copyElementImageToTexture==='function'});
+    panel.append(probe);
+}
 const iconPreview=document.createElement('img'); iconPreview.src='/tileIcon.png'; iconPreview.alt='Extension icon preview'; iconPreview.width=32; iconPreview.height=32; panel.append(iconPreview);
 const external=document.createElement('button');external.textContent='Simulate external tab';external.onclick=()=>api.tabs.create({windowId:1,url:'https://example.com/external',title:'Externally created tab'});panel.append(external);
 const log=document.createElement('output'); log.style.cssText='display:block;margin-top:8px;white-space:pre-wrap';panel.append(log);
@@ -174,3 +191,4 @@ new MutationObserver(records=>{if(records.some(r=>[...r.addedNodes].some(n=>n in
 document.addEventListener('beforetoggle',e=>{if(e.newState!=='closed')return;const target=e.target;requestAnimationFrame(()=>{materialEvidence.closedPaint.push({target:target.id||target.className,display:getComputedStyle(target).display,open:target.tagName==='DIALOG'?target.open:target.matches(':popover-open')});materialEvidence.closedPaint=materialEvidence.closedPaint.slice(-30);sampleMaterial();});},true);
 
 if(new URL(location.href).searchParams.has('motionProbe')) import('./motion-probe.mjs');
+if(new URL(location.href).searchParams.has('gestureProbe')) import('./gesture-probe.mjs');

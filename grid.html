@@ -12,35 +12,35 @@
     <link rel="stylesheet" href="materials.css">
     <link rel="stylesheet" href="flat.css">
     <link rel="stylesheet" href="glass.css">
-    <link rel="stylesheet" href="neumorphism.css">
-    <link rel="stylesheet" href="clay.css">
     <link rel="stylesheet" href="drawer.css">
+    <link rel="stylesheet" href="background.css">
+    <link rel="stylesheet" href="glass-controls.css">
+    <link rel="stylesheet" href="interaction-refinements.css">
 </head>
 <body>
     <a class="skip-link" href="#tab-content">Skip to tabs</a>
-    <div class="brand-line"><img src="tileIcon.png" width="24" height="24" alt=""><span>TabGrid</span></div>
     <header class="page-header">
       <div class="header-surface">
         <div class="heading-row">
-            <h1>Your tabs <span id="tab-count"></span></h1>
+            <div class="page-title"><img class="header-icon" src="tileIcon.png" width="32" height="32" alt=""><h1>Your tabs <span id="tab-count"></span></h1></div>
             <div class="page-actions"><button id="new-tab-btn" class="primary">+ New tab</button><button id="page-menu-btn" aria-label="More options" aria-haspopup="menu" aria-controls="page-menu" aria-expanded="false">⋮</button></div>
         </div>
       </div>
     </header>
     <div class="page-controls">
         <div class="search-row">
-            <div class="search-disclosure" id="search-disclosure"><label class="search-field">Search tabs
+            <div class="search-disclosure" id="search-disclosure"><label class="search-field"><span class="wallpaper-label">Search tabs</span>
                 <input type="search" id="search-input" placeholder="Search titles or URLs" autocomplete="off">
             </label>
             <div class="search-filters" id="search-filters" hidden>
                 <label><input type="checkbox" role="switch" id="opt-nested" checked> Search inside groups</label>
                 <label><input type="checkbox" role="switch" id="opt-groups" checked> Search groups</label>
             </div></div>
-            <label class="sort-control">Sort
+            <label class="sort-control"><span class="wallpaper-label">Sort</span>
                 <select id="sort-select"><option value="default">Tab order</option><option value="title">Title (A–Z)</option><option value="domain">Website (A–Z)</option><option value="accessed">Last used</option></select>
             </label>
-            <label class="size-control">Card size
-                <span id="size-range" class="size-range"><input id="size-slider" aria-label="Card size" type="range" min="1" max="6" step="1" value="3" list="size-levels" aria-valuetext="4 tabs per row"><span class="size-knob" aria-hidden="true"></span></span><output id="size-value" for="size-slider">4 per row</output>
+            <label class="size-control"><span class="wallpaper-label">Card size</span>
+                <span id="size-range" class="size-range"><input id="size-slider" aria-label="Card size" type="range" min="1" max="6" step="1" value="3" list="size-levels" aria-valuetext="4 tabs per row"><span class="size-knob" aria-hidden="true"></span></span><output id="size-value" class="wallpaper-label" for="size-slider">4 per row</output>
                 <datalist id="size-levels"><option value="1"></option><option value="2"></option><option value="3"></option><option value="4"></option><option value="5"></option><option value="6"></option></datalist>
             </label>
         </div>
