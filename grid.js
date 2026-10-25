@@ -1,8 +1,10 @@
+import {mountNoticePopover} from './lib/notice-popover.mjs';
+import {createCardReturn} from './lib/card-return.mjs';
+import { tr, currentLanguage, resolveLanguage, translateError } from './lib/i18n.mjs';
 import { createDragGrouping } from './lib/drag-grouping.mjs';
 import { mountCardSwipe, mouseSwipeEnabled } from './lib/card-swipe.mjs';
 import { createCategoryTransition } from './lib/category-transition.mjs';
 import { mountCategorySwipe } from './lib/category-swipe.mjs';
-import { mountWallpaperContrast } from './lib/background-contrast.mjs';
 import { mountBackground, applyBackgroundAdjustments } from './lib/background-image.mjs';
 import { mountGlassSurfaces } from './lib/glass-surfaces.mjs';
 import { mountLiquidInteractions } from './lib/liquid-motion.mjs';
@@ -48,7 +50,7 @@ const groupTransition=createGroupTransition({
     speed:()=>({efficient:.65,standard:1,smooth:1.6}[preferences.animationSpeed]||1),
     dragging:()=>state.dragging
 });
-document.querySelectorAll('dialog,[popover]').forEach(surface => materialMotion.native(surface,surface.id==='group-dialog'?{transition:groupTransition.toggle}:{}));
+document.querySelectorAll('dialog,[popover]:not(#status):not(#undo-toast)').forEach(surface => materialMotion.native(surface,surface.id==='group-dialog'?{transition:groupTransition.toggle}:{}));
 motionMedia.addEventListener('change', () => {
     materialMotion.sync(); groupTransition.sync();
     cardSwipe.cancel();
@@ -93,13 +95,12 @@ function button(text, handler, className = '') {
     const node = el('button', className, text); node.type = 'button';
     node.addEventListener('click', handler); return node;
 }
-function announce(message, error = false) {
-    $('status').textContent = message;
-    $('status').setAttribute('role', error ? 'alert' : 'status');
-    $('group-feedback').textContent = message;
-    clearTimeout(statusTimer);
-    statusTimer = setTimeout(() => { $('status').textContent = ''; }, 10000);
-}
+const noticeOptions={motion:materialMotion,timing:()=>materialTiming(preferences.visualStyle,preferences.animationSpeed),allowed:()=>materialMotionAllowed(preferences.visualStyle,preferences.motion,motionMedia.matches)};
+const statusPopover=mountNoticePopover($('status'),noticeOptions),undoPopover=mountNoticePopover($('undo-toast'),noticeOptions);
+let actionMessage='',dragMessage='';
+function paintNotice(){const text=dragMessage||actionMessage;$('status-message').textContent=text;statusPopover.set(Boolean(text));}
+function announce(message,error=false){actionMessage=message;$('status-message').setAttribute('role',error?'alert':'status');paintNotice();clearTimeout(statusTimer);statusTimer=setTimeout(()=>{actionMessage='';paintNotice();},10000);}
+function dragNotice(message){dragMessage=message;paintNotice();}
 async function rpc(action, ...args) {
     const response = await chrome.runtime.sendMessage({ type: 'tabgrid-action', action, args });
     if (response?.error) throw new Error(response.error);
@@ -113,7 +114,7 @@ async function run(work, success = '') {
         if (result?.error) announce(result.error, true);
         else if (success) announce(success);
         return result;
-    } catch (error) { announce(error.message || 'The action could not be completed.', true); }
+    } catch (error) { announce(translateError(error.message) || tr("The action could not be completed."), true); }
     finally { state.busy = false; await refresh(); await refreshRecent(); await updateUndo(); syncSelection(); }
 }
 function scopeNow() { return $('group-dialog').open ? 'group' : 'root'; }
@@ -130,7 +131,7 @@ function favicon(tab) {
     url.searchParams.set('pageUrl', tab.url || ''); url.searchParams.set('size', '32');
     return url.href;
 }
-function domain(url) { try { return new URL(url).hostname || url; } catch { return url || 'New tab'; } }
+function domain(url) { try { return new URL(url).hostname || url; } catch { return url || tr("New tab"); } }
 function focusToken() {
     const active = document.activeElement;
     const card = active?.closest('[data-key]');
@@ -145,8 +146,8 @@ function restoreFocus(token) {
 }
 
 function buildToolbar(scope) {
-    const bar = el('div', 'toolbar'); bar.setAttribute('aria-label', 'Tab selection actions');
-    const toggle = button('Select', () => {
+    const bar = el('div', 'toolbar'); bar.setAttribute('aria-label', tr("Tab selection actions"));
+    const toggle = button(tr("Select"), () => {
         selecting[scope] = !(selecting[scope] || selections[scope].size > 0);
         if (!selecting[scope]) selections[scope].clear();
         syncSelection();
@@ -154,13 +155,13 @@ function buildToolbar(scope) {
     bar.append(toggle);
     const count = el('span', 'selection-count'); count.dataset.role = 'count'; count.setAttribute('aria-live', 'polite'); bar.append(count);
     const actions = [
-        ['Select all', () => { selecting[scope] = true; selections[scope] = new Set(visibleItems[scope].map(i => i.key)); syncSelection(); }, false],
-        ['Clear', () => { selections[scope].clear(); syncSelection(); }, true],
-        ['Edit', e => showSelectionMenu(scope, e), true]
+        [tr("Select all"), () => { selecting[scope] = true; selections[scope] = new Set(visibleItems[scope].map(i => i.key)); syncSelection(); }, false],
+        [tr("Clear"), () => { selections[scope].clear(); syncSelection(); }, true],
+        [tr("Edit"), e => showSelectionMenu(scope, e), true]
     ];
     actions.forEach(([label, handler, needsSelection]) => {
         const b = button(label, handler); b.dataset.role = 'selection-action'; b.dataset.needsSelection = needsSelection;
-        if (label === 'Edit') { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-label', 'Edit selected tabs'); }
+        if (label === tr("Edit")) { b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-label', tr("Edit selected tabs")); }
         bar.append(b);
     });
     return bar;
@@ -176,9 +177,9 @@ function syncSelection(layout=true) {
         document.body.classList.toggle(`${scope}-selection-active`,active);
         const bar = $(`${scope}-toolbar`);
         bar.hidden = scope === 'group' && !active;
-        bar.querySelector('[data-role=toggle]').textContent = active ? 'Done' : 'Select';
+        bar.querySelector('[data-role=toggle]').textContent = active ? tr("Done") : tr("Select");
         bar.querySelector('[data-role=toggle]').setAttribute('aria-pressed', String(active));
-        bar.querySelector('[data-role=count]').textContent = active ? `${tabIds(scope).length} ${tabIds(scope).length === 1 ? 'tab' : 'tabs'} selected` : '';
+        bar.querySelector('[data-role=count]').textContent = active ? tr("{0} {1} selected", [tabIds(scope).length, tabIds(scope).length === 1 ? tr('tab') : tr('tabs')]) : '';
         bar.querySelectorAll('[data-role=selection-action]').forEach(b => { b.hidden = !active || (b.dataset.inactive && state.view !== 'inactive'); b.disabled = state.busy || (b.dataset.needsSelection === 'true' && !hasSelection); });
         const containers = scopeGrids(scope);
         containers.forEach(container => { container.classList.toggle('selecting', active); [...container.children].forEach(card => {
@@ -212,24 +213,26 @@ function selectItem(item, scope, event) {
 async function activate(item, scope, event) {
     if (state.dragging || (event.detail !== 0 && Date.now() < (state.dragEnded || 0) + 250)) return;
     if (selecting[scope] || event.ctrlKey || event.metaKey || event.shiftKey) { selectItem(item, scope, event); return; }
+    const quickView=preferences.closeAfterSwitch&&item.kind==='tab'?features?.snapshot():null;
     await features?.consume(scope);
     if (item.kind === 'group') openGroup(item.group.id);
-    else await run(async () => { await rpc('rememberOpened', item.key); await chrome.tabs.update(item.tab.id, { active: true }); await chrome.windows.update(item.tab.windowId, { focused: true }); });
+    else await run(async () => { await rpc('rememberOpened', item.key); await rpc('switchFromGrid',item.tab.id,{keepOpen:Boolean(undoNotice.entry),view:quickView}); });
 }
 function createCard(item, scope) {
     const data = item.tab || item.group;
-    const title = data.title || (item.kind === 'group' ? 'Untitled group' : data.url || 'New tab');
+    const title = data.title || (item.kind === 'group' ? tr("Untitled group") : data.url || tr("New tab"));
     const card = el('article', `card ${item.kind === 'group' ? 'group-card' : ''}`);
     card.dataset.key = item.key; card.dataset.kind = item.kind; card.itemModel = item;
     const info = el('div', 'card-info');
-    const check = el('input', 'card-select'); check.type = 'checkbox'; check.dataset.part = 'select'; check.setAttribute('aria-label', `Select ${title}`);
+    const check = el('input', 'card-select'); check.type = 'checkbox'; check.dataset.part = 'select'; check.setAttribute('aria-label', tr("Select {0}", [title]));
     check.addEventListener('click', e => { e.stopPropagation(); selectItem(item, scope, e); }); info.append(check);
     if (item.tab) info.append(image(favicon(item.tab), 'favicon'));
     else { const dot = el('span', 'group-color-dot'); dot.setAttribute('aria-hidden', 'true'); info.append(dot); }
     const name = el('span', 'card-title', title); name.title = title; info.append(name);
-    const menu = button('⋮', e => showMenu(item, scope, e), 'card-menu'); menu.setAttribute('aria-label', `Actions for ${title}`); menu.dataset.part = 'menu'; menu.setAttribute('aria-haspopup', 'menu'); menu.setAttribute('aria-expanded', 'false');
-    const close = button('×', () => item.kind === 'group' ? confirmClose(item.members.map(t => t.id), `Close “${title}”?`) : closeTabs([item.tab.id]), 'card-close'); close.setAttribute('aria-label', `Close ${title}`); close.dataset.part = 'close'; info.append(menu, close);
-    const open = el('button', 'card-open'); open.type = 'button'; open.dataset.part = 'open'; open.setAttribute('aria-label', `${item.kind === 'group' ? 'Open group' : 'Switch to'} ${title}`);
+    if(item.tab?.mutedInfo?.muted){const mute=button('',e=>{e.stopPropagation();run(()=>chrome.tabs.update(card.itemModel.tab.id,{muted:false}),tr("Tab unmuted."));},'card-mute');mute.dataset.part='mute';mute.setAttribute('aria-label',tr("Unmute {0}",[title]));mute.title=tr("Unmute tab");info.append(mute);}
+    const menu = button('⋮', e => showMenu(item, scope, e), 'card-menu'); menu.setAttribute('aria-label', tr("Actions for {0}", [title])); menu.dataset.part = 'menu'; menu.setAttribute('aria-haspopup', 'menu'); menu.setAttribute('aria-expanded', 'false');
+    const close = button('×', () => item.kind === 'group' ? confirmClose(item.members.map(t => t.id), tr("Close “{0}”?", [title])) : closeTabs([item.tab.id]), 'card-close'); close.setAttribute('aria-label', tr("Close {0}", [title])); close.dataset.part = 'close'; info.append(menu, close);
+    const open = el('button', 'card-open'); open.type = 'button'; open.dataset.part = 'open'; open.setAttribute('aria-label', `${item.kind === 'group' ? tr("Open group") : tr("Switch to")} ${title}`);
     const preview = el('div', 'card-preview');
     if (item.kind === 'group') {
         card.style.setProperty('--group-color', colors[data.color]);
@@ -239,12 +242,12 @@ function createCard(item, scope) {
             const cell = el('div', 'group-tile');
             if (tile.tab) {
                 const screenshot = state.screenshots[`screenshot_${tile.tab.id}`];
-                cell.title = tile.tab.title || tile.tab.url || 'New tab';
+                cell.title = tile.tab.title || tile.tab.url || tr("New tab");
                 if (screenshot) cell.append(image(screenshot, 'preview-image'));
                 cell.append(image(favicon(tile.tab), 'tile-favicon'));
             } else if (tile.remaining) {
                 cell.classList.add('group-overflow'); cell.textContent = `+${tile.remaining}`;
-                cell.title = `${tile.remaining} more tabs`;
+                cell.title = tr("{0} more tabs", [tile.remaining]);
             } else cell.classList.add('group-tile-empty');
             preview.append(cell);
         }
@@ -254,15 +257,15 @@ function createCard(item, scope) {
     }
     const details = [];
     if (item.tab) {
-        if (data.pinned) details.push('Pinned'); if (data.audible) details.push('Playing audio'); if (data.mutedInfo?.muted) details.push('Muted');
+        if (data.pinned) details.push(tr("Pinned")); if (data.audible) details.push(tr("Playing audio")); if (data.mutedInfo?.muted) details.push(tr("Muted"));
         if (preferences.showAddress) details.push(domain(data.url));
-        if (preferences.showGroup && scope === 'root' && $('search-input').value.trim() && $('opt-nested').checked && data.groupId !== -1) details.push(state.groups.find(g=>g.id===data.groupId)?.title || 'Untitled group');
-        if (preferences.showLastUsed) details.push(Number.isFinite(data.lastAccessed) && data.lastAccessed > 0 ? `Last used ${new Date(data.lastAccessed).toLocaleString()}` : 'Last used unavailable');
-    } else details.push(`${item.members.length} ${item.members.length===1?'tab':'tabs'}`);
+        if (preferences.showGroup && scope === 'root' && $('search-input').value.trim() && $('opt-nested').checked && data.groupId !== -1) details.push(state.groups.find(g=>g.id===data.groupId)?.title || tr("Untitled group"));
+        if (preferences.showLastUsed) details.push(Number.isFinite(data.lastAccessed) && data.lastAccessed > 0 ? tr("Last used {0}", [new Date(data.lastAccessed).toLocaleString(currentLanguage())]) : tr("Last used unavailable"));
+    } else details.push(`${item.members.length} ${item.members.length===1?tr('tab'):tr('tabs')}`);
     if (preferences.showWindow) details.push(numberedWindow(data.windowId, state.windowOrder));
     open.append(preview, el('div', 'card-meta', details.join(' · ')));
     const surface = el('div', 'card-surface'); surface.append(info, open); card.append(surface);
-    card.addEventListener('click', e => { if (!e.target.closest('.card-menu, .card-close, input')) activate(card.itemModel, scope, e); });
+    card.addEventListener('click', e => { if (!e.target.closest('.card-menu, .card-close, .card-mute, input')) activate(card.itemModel, scope, e); });
     card.addEventListener('contextmenu', e => {
         e.preventDefault();
         if (selectionActive(selecting[scope], selections[scope])) {
@@ -297,7 +300,7 @@ function paintCards(container, items, scope) {
         card.dataset.signature = signature;
         card.classList.toggle('last-opened', isLastOpened(item, state.lastOpened));
         const open = card.querySelector('.card-open');
-        if (isLastOpened(item, state.lastOpened)) open.setAttribute('aria-description', 'Last opened');
+        if (isLastOpened(item, state.lastOpened)) open.setAttribute('aria-description', tr("Last opened"));
         else open.removeAttribute('aria-description');
         if (liveChildren()[index] !== card) container.insertBefore(card, liveChildren()[index] || null);
     });
@@ -310,6 +313,7 @@ function canReorder(container) { return gridPolicy(container).reorder; }
 function canDrag(container) { return gridPolicy(container).drag; }
 function gridWindow(container) { return Number(container.dataset.windowId)||(container=== $('group-grid')?currentGroup()?.windowId:state.windowId); }
 function gridPinned(container) { return container.dataset.pinned==='true'||container===$('pinned-grid'); }
+const returnCard=createCardReturn({getGhost:()=>Sortable.ghost,motion:materialMotion,allowed:()=>materialMotionAllowed(preferences.visualStyle,preferences.motion,motionMedia.matches),speed:()=>({efficient:.65,standard:1,smooth:1.6}[preferences.animationSpeed]||1)});
 const dropFeedback = createDropFeedback({ getGhost: () => Sortable.ghost, motion: materialMotion });
 const drawers = Object.fromEntries(['root', 'group'].map(scope => [scope, mountGroupDrawer($(`${scope}-drop-targets`), {
     getPrefs: () => preferences, save: savePreferences, dragging: () => state.dragging, announce, motion: materialMotion
@@ -327,17 +331,17 @@ function renderDropTargets() {
             const focusedDestination = tray.contains(document.activeElement) ? document.activeElement.dataset.destination : null;
             dropSortables[scope].forEach(s => s.destroy()); dropSortables[scope] = [];
             drawers[scope].list.replaceChildren(); tray.dataset.signature = signature;
-            const destinations = [['new', 'New group'], ['ungroup', 'Ungroup'], ...groups.map(g => [g.id, g.title || 'Untitled group'])];
+            const destinations = [['new', tr("New group")], ['ungroup', tr("Ungroup")], ...groups.map(g => [g.id, g.title || tr("Untitled group")])];
             for (const [destination, label] of destinations) {
                 const target = el('div', 'drop-target'); target.dataset.destination = destination; const destinationGroup = groups.find(g => g.id === destination); if (destinationGroup) { target.classList.add('group-drop-target'); target.style.setProperty('--group-color', colors[destinationGroup.color] || colors.grey); } const receiver = el('div', 'drop-receiver'); receiver.dataset.destination = destination; receiver.dataset.windowId = destinationGroup?.windowId || windowId; receiver.dataset.scope = scope; receiver.setAttribute('aria-hidden', 'true');
                 const action = button(label, async () => {
                     const ids = tabIds(scope);
-                    if (!ids.length) { announce('Select tabs, then choose a group target, or drag a tab card here.'); return; }
-                    if (state.tabs.some(tab => ids.includes(tab.id) && tab.pinned)) { announce('Unpin selected tabs before grouping them.', true); return; }
+                    if (!ids.length) { announce(tr("Select tabs, then choose a group target, or drag a tab card here.")); return; }
+                    if (state.tabs.some(tab => ids.includes(tab.id) && tab.pinned)) { announce(tr("Unpin selected tabs before grouping them."), true); return; }
                     if(destination==='new')createGroupDialog(ids,windowId);
-                    else await run(() => rpc('dropIntoGroup', ids, destination, destinationGroup?.windowId || windowId), destination === 'ungroup' ? 'Tabs ungrouped.' : 'Tabs grouped.');
+                    else await run(() => rpc('dropIntoGroup', ids, destination, destinationGroup?.windowId || windowId), destination === 'ungroup' ? tr("Tabs ungrouped.") : tr("Tabs grouped."));
                     drawers[scope].collapse();
-                }); if (destinationGroup) action.replaceChildren(groupLabel(destinationGroup)); action.dataset.destination = destination; action.setAttribute('aria-label', `${destination === 'ungroup' ? 'Ungroup selected tabs' : `Move selected tabs to ${label}`}`); target.append(action, receiver); drawers[scope].list.append(target);
+                }); if (destinationGroup) action.replaceChildren(groupLabel(destinationGroup)); action.dataset.destination = destination; action.setAttribute('aria-label', `${destination === 'ungroup' ? tr("Ungroup selected tabs") : tr("Move selected tabs to {0}", [label])}`); target.append(action, receiver); drawers[scope].list.append(target);
                 dropSortables[scope].push(Sortable.create(receiver, {
                     group: { name: 'tabgrid', pull: false, put(to, from, card) { return (acceptsGroupDrop(card) && destination !== 'ungroup' || destination === 'ungroup' && card.dataset.kind === 'group' && /^group:\d+$/.test(card.dataset.key)) && state.dragging && preferences.dropGroups && from.el.dataset.scope === scope; } },
                     draggable: '.card[data-key]', sort: false, animation: 0,
@@ -357,7 +361,7 @@ function syncPinnedDropAreas(showEmpty) {
 function scopeGrids(scope) {
     return [...document.querySelectorAll('.grid-container[data-scope]')].filter(c => c.dataset.scope === scope && sortables.has(c) && !c.closest('[hidden],[inert]'));
 }
-const dragGrouping=createDragGrouping({enabled:()=>preferences.dragGrouping,canReorder:card=>canReorder(card.parentElement),dialog:$('group-dialog'),feedback:dropFeedback,handoff(card,groupId){
+const dragGrouping=createDragGrouping({notify:dragNotice,enabled:()=>preferences.dragGrouping,canReorder:card=>canReorder(card.parentElement),dialog:$('group-dialog'),feedback:dropFeedback,handoff(card,groupId){
     handoffPreview={tabId:card.itemModel.tab.id,groupId};updateHandoffPreview(groupId);
     // Move only Sortable's fallback; its live slot remains owned by Sortable.
     const ghost=Sortable.ghost;if(ghost){const r=ghost.getBoundingClientRect(),matrix=new DOMMatrix(getComputedStyle(ghost).transform);document.body.append(ghost);Object.assign(ghost.style,{position:'fixed',left:`${r.left-matrix.e}px`,top:`${r.top-matrix.f}px`});}
@@ -382,7 +386,7 @@ function registerGrid(container, scope) {
         sort:canReorder(container),
         animation: 0, forceFallback: true, fallbackOnBody: scope !== 'group', supportPointer: false, draggable: '.card[data-key]',
         fallbackTolerance: 6, delay: 250, delayOnTouchOnly: !mouseSwipeEnabled(preferences), touchStartThreshold: 2,
-        filter(event) { return Boolean(event.target.closest('.card-menu, .card-close, input')) || !canDrag(container); },
+        filter(event) { return Boolean(event.target.closest('.card-menu, .card-close, .card-mute, input')) || !canDrag(container); },
         preventOnFilter: false, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', dragClass: 'sortable-drag',
         onMove(evt) {
             const direction=!evt.to.dataset.destination?dragGrouping.sortMove(evt):undefined;
@@ -414,6 +418,7 @@ function registerGrid(container, scope) {
             Object.values(drawers).forEach(drawer => drawer.sync());
         },
         async onEnd(evt) {
+            let returning=false;
             try {
             const direct=dragGrouping.finish(evt.originalEvent);
             dropFeedback.reset();
@@ -426,7 +431,7 @@ function registerGrid(container, scope) {
                 const item=evt.item.itemModel,ids=item.members?.map(t=>t.id)||[item.tab.id];
                 const target=direct.target;
                 if(target?.destination==='new'){createGroupDialog([...new Set([...ids,target.targetId])],target.windowId);await refresh();}
-                else await run(()=>rpc('dropIntoGroup',ids,target?.destination??'ungroup',target?.windowId??(item.tab||item.group).windowId),target?'Tabs grouped.':'Tab ungrouped.');
+                else await run(()=>rpc('dropIntoGroup',ids,target?.destination??'ungroup',target?.windowId??(item.tab||item.group).windowId),target?tr("Tabs grouped."):tr("Tab ungrouped."));
                 return;
             }
             if (evt.to.dataset.destination) {
@@ -434,8 +439,8 @@ function registerGrid(container, scope) {
                 try {
                     const ids = await dropTargetTabIds([evt.item], raw, id => chrome.tabs.query({groupId:id}));
                     if(raw==='new'){createGroupDialog(ids,Number(evt.to.dataset.windowId)); await refresh();}
-                    else await run(() => rpc('dropIntoGroup', ids, raw==='ungroup' ? raw : Number(raw), Number(evt.to.dataset.windowId)), raw === 'ungroup' ? 'Tabs ungrouped.' : 'Tabs grouped.');
-                } catch (error) { announce(error.message, true); await refresh(); }
+                    else await run(() => rpc('dropIntoGroup', ids, raw==='ungroup' ? raw : Number(raw), Number(evt.to.dataset.windowId)), raw === 'ungroup' ? tr("Tabs ungrouped.") : tr("Tabs grouped."));
+                } catch (error) { announce(translateError(error.message), true); await refresh(); }
                 finally {
                     evt.to.querySelectorAll('.card').forEach(c => { c.remove(); });
                     animations.get(container).enable();
@@ -444,6 +449,9 @@ function registerGrid(container, scope) {
                 return;
             }
             const target=evt.to,source=evt.from,targetCanReorder=canReorder(evt.to);
+            // Sortable has already placed the slot. Start its surface return now,
+            // before asynchronous persistence/refresh can show the resting card.
+            returnCard(evt.item);returning=true;
             if(target===source&&evt.oldIndex===evt.newIndex){syncSelection();if(refreshPending)scheduleRefresh();return;}
             await run(async()=>{
                 if(target!==source){
@@ -465,7 +473,7 @@ function registerGrid(container, scope) {
             animations.get(container).enable();
             if (refreshPending) scheduleRefresh();
             } finally {
-                clearHandoffPreview();
+                clearHandoffPreview();if(!returning)returnCard(evt.item);
             }
         }
     }));
@@ -495,7 +503,7 @@ function paintWindowSections(items) {
         if (!view) {
             const section = el('section', 'window-section');
             const heading = el('h3'); const title = el('button','window-toggle'); title.type='button'; heading.append(title); title.id = `window-${windowId}-heading`; section.setAttribute('aria-labelledby', title.id);
-            const pinnedArea = el('div', 'window-pinned'); pinnedArea.append(el('h4', '', 'Pinned'));
+            const pinnedArea = el('div', 'window-pinned'); pinnedArea.append(el('h4', '', tr("Pinned")));
             const pinned = el('div', 'grid-container'); pinned.id = `window-${windowId}-pinned`;pinned.dataset.windowId=windowId;pinned.dataset.pinned='true';
             const regular = el('div', 'grid-container'); regular.id = `window-${windowId}-grid`;regular.dataset.windowId=windowId;
             pinnedArea.append(pinned); const content=el('div','window-content'); content.id=`window-${windowId}-content`; content.append(pinnedArea,regular); section.append(heading,content); title.setAttribute('aria-controls',content.id);
@@ -508,10 +516,10 @@ function paintWindowSections(items) {
         view.title.setAttribute('aria-expanded',String(!collapsed));
         view.section.style.setProperty('--window-color',Object.values(colors)[state.windowOrder.indexOf(windowId)%Object.values(colors).length]||colors.blue);
         const count = new Set(members.flatMap(i => i.members?.map(t => t.id) || [i.tab.id])).size;
-        view.title.textContent = `${numberedWindow(windowId,state.windowOrder)}${windowId===state.windowId?' · This window':''} · ${count} ${count===1?'tab':'tabs'}`;
+        view.title.textContent = `${numberedWindow(windowId,state.windowOrder)}${windowId===state.windowId?tr(" · This window"):''} · ${count} ${count===1?tr('tab'):tr('tabs')}`;
         const pinned = members.filter(i => i.tab?.pinned), regular = members.filter(i => !i.tab?.pinned);
         paintCards(view.pinned, pinned, 'root'); paintCards(view.regular, regular, 'root'); view.pinnedArea.dataset.empty = String(!pinned.length); view.pinnedArea.hidden = !pinned.length;
-        $('window-sections').append(view.section); if(!collapsed)ordered.push(...pinned, ...regular);
+        const index=sections.findIndex(s=>s.windowId===windowId),at=$('window-sections').children[index];if(at!==view.section)$('window-sections').insertBefore(view.section,at||null); if(!collapsed)ordered.push(...pinned, ...regular);
 
     }
     return ordered;
@@ -548,7 +556,7 @@ function render(options) {
     const visibleKeys = new Set(visibleItems.root.map(i => i.key));
     selections.root = new Set([...selections.root].filter(k => visibleKeys.has(k)));
     $('pinned-section').hidden = allWindows || !pinned.length; $('open-empty').hidden = Boolean(items.length);
-    $('open-empty').textContent = query ? 'No open tabs match your search.' : 'No tabs in this view. Open a new tab to get started.';
+    $('open-empty').textContent = query ? tr("No open tabs match your search.") : tr("No tabs in this view. Open a new tab to get started.");
     if (state.groupId !== null) {
         const group = currentGroup();
         if (!group || !state.tabs.some(tab=>tab.groupId===group.id)) $('group-dialog').close();
@@ -560,7 +568,7 @@ function render(options) {
             paintCards($('group-grid'), groupItems, 'group'); $('group-empty').hidden = Boolean(groupItems.length);
         }
     }
-    renderSessions('recent', state.recent, state.recentError, 'No recently closed tabs are available.');
+    renderSessions('recent', state.recent, state.recentError, tr("No recently closed tabs are available."));
     for(const scope of ['root','group']){const tip=$(`${scope}-drag-tip`),policy=gridPolicy($(scope==='root'?'grid':'group-grid'));tip.textContent=policy.tip;tip.hidden=!policy.tip;}
     if(returningToTabs)for(const motion of motionViews.values())motion.revealNext();
     syncSelection(false); restoreFocus(token); scrollToCreatedTab(); if(!disclosure)flushGridLayout();finishNavigation();
@@ -575,18 +583,18 @@ function renderSessions(source, items, error, empty) {
         for (const item of filtered) {
             const row = el('div', 'session-row'); row.dataset.key = item.key;
             const details = el('div', 'session-details'); details.append(el('p', 'session-title', item.title));
-            const when = item.time ? new Date(item.time * 1000).toLocaleString() : '';
-            details.append(el('div', 'session-meta', `${item.isWindow ? 'Closed window' : domain(item.url)}${when ? ` · ${when}` : ''}`));
-            const action = button(item.isWindow ? 'Restore window' : 'Restore tab', () => run(async () => {
+            const when = item.time ? new Date(item.time * 1000).toLocaleString(currentLanguage()) : '';
+            details.append(el('div', 'session-meta', `${item.isWindow ? tr("Closed window") : domain(item.url)}${when ? ` · ${when}` : ''}`));
+            const action = button(item.isWindow ? tr("Restore window") : tr("Restore tab"), () => run(async () => {
                 await features?.record('root');
                 await rpc('restoreSession', item.sessionId);
                 await refreshRecent();
-            }, 'Session restored.')); action.dataset.part = 'open'; action.setAttribute('aria-label', `${action.textContent}: ${item.title}`);
+            }, tr("Session restored."))); action.dataset.part = 'open'; action.setAttribute('aria-label', `${action.textContent}: ${item.title}`);
             row.append(details, action); list.append(row);
         }
     }
     $(`${source}-empty`).hidden = filtered.length > 0 && !error;
-    $(`${source}-empty`).textContent = error || (query && items.length ? 'No matches in this section.' : empty);
+    $(`${source}-empty`).textContent = error || (query && items.length ? tr("No matches in this section.") : empty);
 }
 async function refresh() {
     if (state.pointerDown || state.dragging || state.busy) { refreshPending = true; return; }
@@ -598,27 +606,22 @@ async function refresh() {
         if (revision !== state.revision || state.pointerDown || state.dragging || state.busy) { refreshPending = true; return; }
         state.returned = returned;
         state.windowOrder = windowOrder || [...new Set(safeTabs.map(t=>t.windowId))]; state.lastOpened = lastOpened || {}; state.tabs = safeTabs; state.groups = groups; state.screenshots = screenshots; refreshPending = false; render();
-    } catch (error) { announce(`Could not refresh tabs: ${error.message}`, true); }
+    } catch (error) { announce(tr("Could not refresh tabs: {0}", [translateError(error.message)]), true); }
 }
 function scheduleRefresh() { clearTimeout(refreshTimer); refreshTimer = setTimeout(refresh, 100); }
 async function refreshRecent() {
     if (privateMode) return;
     const revision = ++recentRevision;
     try { const sessions = await chrome.sessions.getRecentlyClosed(); if (revision !== recentRevision) return; state.recent = recentItems(sessions, gridUrl); state.recentError = ''; }
-    catch { state.recentError = 'Recently closed tabs could not be loaded. Try Refresh.'; }
+    catch { state.recentError = tr("Recently closed tabs could not be loaded. Try Refresh."); }
     if (!state.dragging && !state.busy) render();
 }
-function placeUndo() {
-    const toast = $('undo-toast');
-    const host = $('settings-dialog').open ? $('settings-dialog') : $('action-dialog').open ? $('action-dialog') : $('group-dialog').open ? $('group-dialog') : document.body;
-    if (toast.parentElement !== host) host.append(toast);
-}
+function placeUndo(){undoPopover.place();statusPopover.place();}
 const undoNotice = new UndoNotice({ duration: () => preferences.undoMs, change(entry) {
     const toast = $('undo-toast');
     const focused = toast.contains(document.activeElement);
-    toast.hidden = !entry;
-    materialMotion.reveal(toast,Boolean(entry));
-    if (entry) $('undo-message').textContent = `${entry.tabs.filter(t => t.state === 'closed').length} closed tab(s)`;
+    undoPopover.set(Boolean(entry));
+    if (entry) $('undo-message').textContent = entry.kind==='grouping'?tr("Tab grouping changed."):tr("{0} closed tab(s)", [entry.tabs.filter(t => t.state === 'closed').length]);
     else if (focused) ($('action-dialog').open ? $('action-cancel') : $('group-dialog').open ? $('group-done') : $('search-input')).focus({ preventScroll: true });
     placeUndo();
 } });
@@ -661,12 +664,12 @@ function syncModal() {
 async function closeTabs(ids, confirmed = false) {
     ids = [...new Set(ids)].filter(id => state.tabs.some(t => t.id === id));
     if (!ids.length) return;
-    if (!confirmed && needsConfirmation(ids.length, preferences)) { showCloseConfirmation(ids, 'Close selected tabs?'); return; }
+    if (!confirmed && needsConfirmation(ids.length, preferences)) { showCloseConfirmation(ids, tr("Close selected tabs?")); return; }
     const result = await run(() => rpc('close', ids));
-    if (result?.count && !result.error) announce(`${result.count} tab(s) closed.${privateMode ? '' : ' Undo is available.'}`);
+    if (result?.count && !result.error) announce(tr("{0} tab(s) closed.{1}", [result.count, privateMode ? '' : tr(" Undo is available.")]));
 }
 let actionOpener;
-function showAction(title, fields, handler, submit = 'Apply') {
+function showAction(title, fields, handler, submit = tr("Apply")) {
     actionOpener=document.activeElement; features?.hideHistory(); closeMenu(); closePageMenu();
     $('action-title').textContent = title; $('action-fields').replaceChildren(...fields); $('action-submit').textContent = submit; $('action-submit').disabled = false; $('action-error').textContent = '';
     actionHandler = handler; $('action-dialog').showModal(); syncModal();
@@ -680,12 +683,12 @@ function confirmClose(ids, title) {
     showCloseConfirmation(ids, title);
 }
 function showCloseConfirmation(ids, title) {
-    showAction(title, [el('p', '', `${ids.length} ${ids.length === 1 ? 'tab' : 'tabs'} will close.${privateMode ? ' Incognito closes cannot be undone here.' : ' You can undo this action.'}`)], () => rpc('close', ids), 'Close tabs');
+    showAction(title, [el('p', '', tr("{0} {1} will close.{2}", [ids.length, ids.length === 1 ? tr('tab') : tr('tabs'), privateMode ? tr(" Incognito closes cannot be undone here.") : tr(" You can undo this action.")]))], () => rpc('close', ids), tr("Close tabs"));
 }
 function createGroupDialog(ids = null, windowId = null) {
-    const name=el('input');name.type='text';name.placeholder='Group name';
+    const name=el('input');name.type='text';name.placeholder=tr("Group name");
     const color=groupColorPicker();
-    showAction('New tab group',[field('Name',name),color.field],async()=>{
+    showAction(tr("New tab group"),[field(tr("Name"),name),color.field],async()=>{
         if(ids){
             if(windowId!==null)return rpc('dropIntoGroup',ids,'new',windowId,{title:name.value,color:color.value});
             return rpc('group',ids,null,name.value,color.value);
@@ -693,7 +696,7 @@ function createGroupDialog(ids = null, windowId = null) {
         const tab=await chrome.tabs.create({windowId:state.windowId,active:false});
         const groupId=await rpc('group',[tab.id],null,name.value,color.value);
         await finishNewTab({...tab,groupId});
-    },'Create group');
+    },tr("Create group"));
 }
 function openGroup(id) {
     features?.capture('root');
@@ -701,7 +704,7 @@ function openGroup(id) {
     state.groupId = id; selections.group.clear(); selecting.group = false; $('group-search').value = '';
     const motion=motionViews.get($('group-grid')); motion?.beginReveal();
     render(); if (!$('group-dialog').open) $('group-dialog').showModal(); syncModal();
-    Promise.resolve(features?.openGroup(id)).catch(error => announce(error.message,true)).finally(() => {
+    return Promise.resolve(features?.openGroup(id)).catch(error => announce(translateError(error.message),true)).finally(() => {
         requestAnimationFrame(() => requestAnimationFrame(() => { if(state.groupId===id)motion?.endReveal(); }));
     });
 }
@@ -746,11 +749,11 @@ function menuSubmenu(menu, label, entries, disabled = false) {
 async function windowEntries(ids) {
     const sourceWindows = new Set(state.tabs.filter(t => ids.includes(t.id)).map(t => t.windowId));
     const windows = (await chrome.windows.getAll({ windowTypes: ['normal'], populate: true })).filter(w => Boolean(w.incognito) === privateMode && !(sourceWindows.size === 1 && sourceWindows.has(w.id)));
-    const entries = [['New Window', () => run(() => rpc('move', ids, null), 'Tabs moved.')]];
+    const entries = [[tr("New Window"), () => run(() => rpc('move', ids, null), tr("Tabs moved."))]];
     if (windows.length) entries.push(null);
     for (const window of windows) {
         const tabs = window.tabs || await chrome.tabs.query({ windowId: window.id });
-        entries.push([windowLabel(tabs), () => run(() => rpc('move', ids, window.id), 'Tabs moved.')]);
+        entries.push([windowLabel(tabs), () => run(() => rpc('move', ids, window.id), tr("Tabs moved."))]);
     }
     return entries;
 }
@@ -758,61 +761,61 @@ function populateTabActions(menu, ids, scope, item = null, { insideGroup = false
     const members = state.tabs.filter(t => ids.includes(t.id));
     const oneWindow = new Set(members.map(t => t.windowId)).size === 1;
     const group = item?.kind === 'group';
-    const title = item?.tab?.title || item?.group?.title || 'Selected tabs';
+    const title = item?.tab?.title || item?.group?.title || tr("Selected tabs");
     const add = (label, handler, opts = {}) => menuAction(menu, label, handler, { disabled: !members.length, ...opts });
-    if (group) add('New Tab in Group', () => newTab(item.group.id));
-    else add('New Tab After Selected', () => run(async () => { const tab=await rpc('newAfter', ids, false); await finishNewTab(tab);return tab; }), { disabled: !oneWindow });
-    menuSubmenu(menu, members.length > 1 ? 'Add Tabs to Group' : 'Add Tab to Group', () => {
+    if (group) add(tr("New Tab in Group"), () => newTab(item.group.id));
+    else add(tr("New Tab After Selected"), () => run(async () => { const tab=await rpc('newAfter', ids, false); await finishNewTab(tab);return tab; }), { disabled: !oneWindow });
+    menuSubmenu(menu, members.length > 1 ? tr("Add Tabs to Group") : tr("Add Tab to Group"), () => {
         const groups = state.groups.filter(g => g.windowId === members[0]?.windowId);
         return [
-            ['New Group', () => createGroupDialog(ids)],
+            [tr("New Group"), () => createGroupDialog(ids)],
             ...(groups.length ? [null] : []),
-            ...groups.map(g => [g.title || 'Untitled group', () => run(() => rpc('group', ids, g.id), 'Tabs grouped.'),g])
+            ...groups.map(g => [g.title || tr("Untitled group"), () => run(() => rpc('group', ids, g.id), tr("Tabs grouped.")),g])
         ];
     }, !oneWindow || members.some(t => t.pinned));
-    if (members.some(t => t.groupId !== -1)) add('Ungroup', () => run(() => chrome.tabs.ungroup(ids), 'Tabs ungrouped.'));
-    menuSubmenu(menu, members.length > 1 ? 'Move Tabs to Another Window' : 'Move Tab to Another Window', () => windowEntries(ids));
+    if (members.some(t => t.groupId !== -1)) add(tr("Ungroup"), () => run(() => rpc('ungroup',ids), tr("Tabs ungrouped.")));
+    menuSubmenu(menu, members.length > 1 ? tr("Move Tabs to Another Window") : tr("Move Tab to Another Window"), () => windowEntries(ids));
     if (!group) {
         menuDivider(menu);
-        add('Reload', () => run(async () => { for (const tab of members) { if (!privateMode && /^https?:/.test(tab.url || '')) await rpc('preview', 'clear', tab.id); await chrome.tabs.reload(tab.id); } }));
-        add('Duplicate', () => run(() => rpc('duplicate', ids)));
+        add(tr("Reload"), () => run(async () => { for (const tab of members) { if (!privateMode && /^https?:/.test(tab.url || '')) await rpc('preview', 'clear', tab.id); await chrome.tabs.reload(tab.id); } }));
+        add(tr("Duplicate"), () => run(() => rpc('duplicate', ids)));
         const pinned = members.length > 0 && members.every(t => t.pinned);
-        add(pinned ? 'Unpin' : 'Pin', () => run(async () => { for (const tab of members) await chrome.tabs.update(tab.id, { pinned: !pinned }); }));
+        add(pinned ? tr("Unpin") : tr("Pin"), () => run(async () => { for (const tab of members) await chrome.tabs.update(tab.id, { pinned: !pinned }); }));
         let muted = false;
-        const sound = add('Mute Site', async () => {
+        const sound = add(tr("Mute Site"), async () => {
             let permission;
             try { permission = await chrome.permissions.request({ permissions: ['contentSettings'] }); }
-            catch (error) { announce(error.message, true); return; }
-            if (!permission) { announce('Site sound permission was not granted.', true); return; }
-            await run(async () => { const current = await rpc('siteSoundSnapshot', ids); return rpc('setSiteSound', ids, !(current?.muted ?? muted)); }, 'Site sound updated.');
+            catch (error) { announce(translateError(error.message), true); return; }
+            if (!permission) { announce(tr("Site sound permission was not granted."), true); return; }
+            await run(async () => { const current = await rpc('siteSoundSnapshot', ids); return rpc('setSiteSound', ids, !(current?.muted ?? muted)); }, tr("Site sound updated."));
         }, { disabled: !siteOrigins(members).length });
-        rpc('siteSoundSnapshot', ids).then(value => { if (sound.isConnected && value) { muted = value.muted; sound.textContent = muted ? 'Unmute Site' : 'Mute Site'; } }).catch(() => {});
+        rpc('siteSoundSnapshot', ids).then(value => { if (sound.isConnected && value) { muted = value.muted; sound.textContent = muted ? tr("Unmute Site") : tr("Mute Site"); } }).catch(() => {});
     }
     if (!privateMode) {
         menuDivider(menu);
-        add(members.length > 1 ? 'Add Tabs to Reading List' : 'Add Tab to Reading List', () => addLinks(ids, 'readingList', title));
+        add(members.length > 1 ? tr("Add Tabs to Reading List") : tr("Add Tab to Reading List"), () => addLinks(ids, 'readingList', title));
     }
     if (!privateMode && item?.tab && /^https?:/.test(item.tab.url || '')) {
         menuDivider(menu);
-        menuContent(menu).append(el('div','menu-name','Preview'));
+        menuContent(menu).append(el('div','menu-name',tr("Preview")));
         const excluded = siteMatches(item.tab.url, preferences.previewSites);
-        add(excluded ? 'Allow previews for this website' : 'Stop previews for this website', () => run(() => rpc('preview', excluded ? 'allow' : 'exclude', item.tab.id), 'Preview preference updated.'));
-        add('Clear this tab’s preview', () => run(() => rpc('preview','clear',item.tab.id), 'Preview cleared.'));
+        add(excluded ? tr("Allow previews for this website") : tr("Stop previews for this website"), () => run(() => rpc('preview', excluded ? 'allow' : 'exclude', item.tab.id), tr("Preview preference updated.")));
+        add(tr("Clear this tab’s preview"), () => run(() => rpc('preview','clear',item.tab.id), tr("Preview cleared.")));
     }
     menuDivider(menu);
-    if (insideGroup) add(selectionActive(selecting.group, selections.group) ? 'Done' : 'Select Tabs', () => {
+    if (insideGroup) add(selectionActive(selecting.group, selections.group) ? tr("Done") : tr("Select Tabs"), () => {
         selecting.group = !selectionActive(selecting.group, selections.group); selections.group.clear(); syncSelection();
     });
-    else if (!selectionActive(selecting[scope], selections[scope]) && item) add('Select', () => { selecting[scope] = true; selections[scope].add(item.key); syncSelection(); });
-    if (!privateMode) add('Bookmark Tabs…', () => addLinks(ids, 'bookmarks', title));
-    add('Copy Links', () => copyLinks(ids));
-    if (state.view === 'inactive') add('Return to Tabs', () => run(() => rpc('returnActive', ids), 'Returned to tabs.'));
+    else if (!selectionActive(selecting[scope], selections[scope]) && item) add(tr("Select"), () => { selecting[scope] = true; selections[scope].add(item.key); syncSelection(); });
+    if (!privateMode) add(tr("Bookmark Tabs…"), () => addLinks(ids, 'bookmarks', title));
+    add(tr("Copy Links"), () => copyLinks(ids));
+    if (state.view === 'inactive') add(tr("Return to Tabs"), () => run(() => rpc('returnActive', ids), tr("Returned to tabs.")));
     menuDivider(menu);
-    add(insideGroup && features?.hasFilters('group') ? 'Close Matching Tabs' : 'Close', () => group || ids.length > 1 ? confirmClose(ids, group ? 'Delete this group?' : 'Close selected tabs?') : closeTabs(ids), { danger: true });
+    add(insideGroup && features?.hasFilters('group') ? tr("Close Matching Tabs") : tr("Close"), () => group || ids.length > 1 ? confirmClose(ids, group ? tr("Delete this group?") : tr("Close selected tabs?")) : closeTabs(ids), { danger: true });
     if (insideGroup) return;
     const others = relativeTabIds(actionTabs(scope), ids, 'others'), after = relativeTabIds(actionTabs(scope), ids, 'after');
-    add('Close Other Unpinned Tabs…', () => confirmClose(others, 'Close other unpinned tabs?'), { danger: true, disabled: !others.length });
-    add('Close Unpinned Tabs After Selected…', () => confirmClose(after, 'Close unpinned tabs after selected?'), { danger: true, disabled: !after.length });
+    add(tr("Close Other Unpinned Tabs…"), () => confirmClose(others, tr("Close other unpinned tabs?")), { danger: true, disabled: !others.length });
+    add(tr("Close Unpinned Tabs After Selected…"), () => confirmClose(after, tr("Close unpinned tabs after selected?")), { danger: true, disabled: !after.length });
 }
 function prepareMenu(scope, event, key) {
     features?.hideHistory();
@@ -836,23 +839,23 @@ containMenuFocus(document, () => {
 });
 function showSelectionMenu(scope, event) {
     const menu = prepareMenu(scope, event); if (!menu) return;
-    menu.setAttribute('aria-label', 'Edit selected tabs');
-    const ids = tabIds(scope); menuContent(menu).append(el('div', 'menu-name', `${ids.length} selected tabs`));
+    menu.setAttribute('aria-label', tr("Edit selected tabs"));
+    const ids = tabIds(scope); menuContent(menu).append(el('div', 'menu-name', tr("{0} selected tabs", [ids.length])));
     populateTabActions(menu, ids, scope); positionMenu(menu, event);
 }
 function showMenu(item, scope, event, { insideGroup = false } = {}) {
     const menu = prepareMenu(scope, event, item.key); if (!menu) return;
-    menu.setAttribute('aria-label', item.kind === 'group' ? 'Group actions' : 'Tab actions');
+    menu.setAttribute('aria-label', item.kind === 'group' ? tr("Group actions") : tr("Tab actions"));
     const ids = item.kind === 'group' ? (insideGroup ? actionTabs(scope) : state.tabs).filter(t => t.groupId === item.group.id).map(t => t.id) : [item.tab.id];
     if (item.kind === 'group') {
         const header = el('div', 'menu-group-header');
-        const input = el('input'); input.type = 'text'; input.value = item.group.title || ''; input.placeholder = 'Name this group'; input.setAttribute('aria-label', 'Group name');
-        const rename = () => { if (input.value !== item.group.title) run(() => chrome.tabGroups.update(item.group.id, { title: input.value }), 'Group renamed.'); };
+        const input = el('input'); input.type = 'text'; input.value = item.group.title || ''; input.placeholder = tr("Name this group"); input.setAttribute('aria-label', tr("Group name"));
+        const rename = () => { if (input.value !== item.group.title) run(() => chrome.tabGroups.update(item.group.id, { title: input.value }), tr("Group renamed.")); };
         input.addEventListener('change', rename);
         input.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); rename(); } });
-        const palette = el('div', 'menu-colors'); palette.setAttribute('role', 'group'); palette.setAttribute('aria-label', 'Group color');
+        const palette = el('div', 'menu-colors'); palette.setAttribute('role', 'group'); palette.setAttribute('aria-label', tr("Group color"));
         for (const [color, value] of Object.entries(colors)) {
-            const dot = button('', () => run(async () => { await chrome.tabGroups.update(item.group.id, { color }); palette.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b === dot))); }, 'Group color changed.'));
+            const dot = button('', () => run(async () => { await chrome.tabGroups.update(item.group.id, { color }); palette.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', String(b === dot))); }, tr("Group color changed.")));
             dot.style.setProperty('--dot', value); dot.setAttribute('aria-label', color); dot.title = color; dot.setAttribute('role', 'menuitemradio'); dot.setAttribute('aria-checked', String(item.group.color === color)); palette.append(dot);
         }
         header.append(input, palette); menuContent(menu).append(header);
@@ -881,7 +884,7 @@ async function openSubmenu(trigger, entries, focus = true) {
     if (submenuOpener === trigger && $('context-submenu').matches(':popover-open')) { if (focus) $('context-submenu').querySelector('button')?.focus(); return; }
     closeSubmenu(); submenuOpener = trigger; const revision = ++submenuRevision;
     const sub = $('context-submenu'); $('context-menu').append(sub); menuContent(sub).replaceChildren(); sub.setAttribute('aria-label', trigger.textContent);
-    menuContent(sub).append(el('div', 'menu-name', 'Loading…')); sub.showPopover(); trigger.setAttribute('aria-expanded', 'true');
+    menuContent(sub).append(el('div', 'menu-name', tr("Loading…"))); sub.showPopover(); trigger.setAttribute('aria-expanded', 'true');
     const place = () => { const r = trigger.getBoundingClientRect(); sub.style.left = `${Math.max(8, r.right + sub.offsetWidth + 8 < innerWidth ? r.right : r.left - sub.offsetWidth)}px`; sub.style.top = `${Math.max(8, Math.min(r.top, innerHeight - sub.offsetHeight - 8))}px`; };
     place();
     try {
@@ -890,7 +893,7 @@ async function openSubmenu(trigger, entries, focus = true) {
         menuContent(sub).replaceChildren();
         for (const entry of values) { if (!entry) { menuDivider(sub); continue; } const [label, handler, group] = entry; const action=menuAction(sub,label,handler);if(group)action.replaceChildren(groupLabel(group)); }
         place(); if (focus) sub.querySelector('button')?.focus();
-    } catch (error) { if (revision === submenuRevision && sub.matches(':popover-open')) menuContent(sub).replaceChildren(el('div', 'menu-name', error.message)); }
+    } catch (error) { if (revision === submenuRevision && sub.matches(':popover-open')) menuContent(sub).replaceChildren(el('div', 'menu-name', translateError(error.message))); }
 }
 for(const type of ['pointerout','mouseout'])$('context-submenu').addEventListener(type,event=>submenuHover?.leave(event));
 $('context-submenu').addEventListener('keydown', e => {
@@ -912,29 +915,29 @@ $('context-menu').addEventListener('keydown', e => {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeMenu(); focusMenuOpener(); }
     if (e.key === 'Tab') closeMenu();
 });
-async function addLinks(ids, destination, title = 'Saved tabs') {
+async function addLinks(ids, destination, title = tr("Saved tabs")) {
     // Request directly from the click handler, before any other asynchronous work.
     try {
         const granted = await chrome.permissions.request({ permissions: [destination] });
-        if (!granted) { announce('Permission was not granted. Nothing was saved.'); return; }
-        if (destination !== 'bookmarks') { await run(() => rpc('addLinks', ids, destination, title), 'Tabs added to Reading List.'); return; }
+        if (!granted) { announce(tr("Permission was not granted. Nothing was saved.")); return; }
+        if (destination !== 'bookmarks') { await run(() => rpc('addLinks', ids, destination, title), tr("Tabs added to Reading List.")); return; }
         const [tree, preferences] = await Promise.all([chrome.bookmarks.getTree(), chrome.storage.local.get('bookmarkParentId')]);
         const folders = bookmarkFolders(tree);
-        if (!folders.length) throw new Error('No writable bookmark folders are available.');
+        if (!folders.length) throw new Error(tr("No writable bookmark folders are available."));
         const target = options(folders.map(f => [f.id, f.path]));
         target.value = folders.find(f => f.id === preferences.bookmarkParentId)?.id || folders.find(f => f.folderType === 'other')?.id || folders[0].id;
         const createFolder = el('input'); createFolder.type = 'checkbox'; createFolder.setAttribute('role', 'switch');
         const name = el('input'); name.type = 'text'; name.value = title; name.required = true; name.disabled = true;
-        const nameField = field('New folder name', name); nameField.hidden = true;
+        const nameField = field(tr("New folder name"), name); nameField.hidden = true;
         createFolder.onchange = () => { nameField.hidden = name.disabled = !createFolder.checked; };
-        showAction('Bookmark tabs', [field('Destination folder', target), field('Create a new subfolder', createFolder), nameField],
-            () => rpc('addLinks', ids, destination, title, { parentId: target.value, ...(createFolder.checked ? { newFolderTitle: name.value } : {}) }), 'Bookmark tabs');
-    } catch (error) { announce(error.message, true); }
+        showAction(tr("Bookmark tabs"), [field(tr("Destination folder"), target), field(tr("Create a new subfolder"), createFolder), nameField],
+            () => rpc('addLinks', ids, destination, title, { parentId: target.value, ...(createFolder.checked ? { newFolderTitle: name.value } : {}) }), tr("Bookmark tabs"));
+    } catch (error) { announce(translateError(error.message), true); }
 }
 async function copyLinks(ids) {
     const text = state.tabs.filter(t => ids.includes(t.id)).map(t => `${t.title || t.url}\n${t.url || t.pendingUrl}`).join('\n\n');
-    try { await navigator.clipboard.writeText(text); announce('Links copied.'); }
-    catch { const input = el('textarea'); input.value = text; input.readOnly = true; input.rows = 8; showAction('Copy links', [field('Select and copy these links', input)], async () => {}, 'Done'); input.focus(); input.select(); }
+    try { await navigator.clipboard.writeText(text); announce(tr("Links copied.")); }
+    catch { const input = el('textarea'); input.value = text; input.readOnly = true; input.rows = 8; showAction(tr("Copy links"), [field(tr("Select and copy these links"), input)], async () => {}, tr("Done")); input.focus(); input.select(); }
 }
 async function finishNewTab(tab) {
     if(preferences.switchNewTab){await chrome.tabs.update(tab.id,{active:true});await chrome.windows.update(tab.windowId,{focused:true});}
@@ -947,7 +950,7 @@ function scrollToCreatedTab() {
         const grid=$('group-dialog').open&&state.groupId===groupId?$('group-grid'):$('open-section');
         const key=grid===$('group-grid')?`tab:${pending.id}`:groupId!==-1&&groupId!==undefined?`group:${groupId}`:`tab:${pending.id}`;
         const card=[...grid.querySelectorAll('.card[data-key]')].find(c=>c.dataset.key===key&&!c.closest('[hidden],[inert]'))||[...grid.querySelectorAll('.card[data-key]')].find(c=>c.dataset.key===`tab:${pending.id}`&&!c.closest('[hidden],[inert]'));
-        if(card)card.scrollIntoView({block:'nearest',behavior:materialMotionAllowed(preferences.visualStyle,preferences.motion,motionMedia.matches)?'smooth':'instant'});else announce('New tab created. Clear the active search or filters to see it.');
+        if(card)card.scrollIntoView({block:'nearest',behavior:materialMotionAllowed(preferences.visualStyle,preferences.motion,motionMedia.matches)?'smooth':'instant'});else announce(tr("New tab created. Clear the active search or filters to see it."));
     });
 }
 async function newTab(groupId = null) {
@@ -962,8 +965,8 @@ async function newTab(groupId = null) {
 $('action-form').addEventListener('submit', async e => {
     e.preventDefault(); if (state.busy) return;
     state.busy = true; $('action-submit').disabled = true; let partial = false;
-    try { const result = await actionHandler(); if (result?.error) { partial = result.count > 0; $('action-error').textContent = result.error; } else { $('action-dialog').close(); announce('Done.'); } }
-    catch (error) { $('action-error').textContent = error.message; }
+    try { const result = await actionHandler(); if (result?.error) { partial = result.count > 0; $('action-error').textContent = result.error; } else { $('action-dialog').close(); announce(tr("Done.")); } }
+    catch (error) { $('action-error').textContent = translateError(error.message); }
     finally { state.busy = false; $('action-submit').disabled = partial; await refresh(); await refreshRecent(); await updateUndo(); }
 });
 $('action-dialog').addEventListener('close', () => { syncModal(); (actionOpener?.isConnected&&actionOpener.getClientRects().length?actionOpener:$('page-menu-btn')).focus({preventScroll:true}); });
@@ -1043,20 +1046,20 @@ $('select-tabs-btn').onclick = () => {
 };
 $('new-group-btn').onclick = () => createGroupDialog();
 $('new-tab-btn').onclick = () => newTab();
-$('undo-btn').onclick = () => { const id = undoNotice.entry?.id; if (id) run(() => rpc('undo', id), 'Closed tabs restored.'); };
+$('undo-btn').onclick = () => { const id = undoNotice.entry?.id; if (id) run(() => rpc('undo', id), tr("Action undone.")); };
 $('dismiss-undo').onclick = () => undoNotice.dismiss();
-$('close-window-btn').onclick = () => confirmClose(actionTabs('root').filter(t => t.windowId === state.windowId && !t.pinned).map(t => t.id), features?.hasFilters('root') ? 'Close matching unpinned tabs in this window?' : 'Close unpinned tabs in this window?');
+$('close-window-btn').onclick = () => confirmClose(actionTabs('root').filter(t => t.windowId === state.windowId && !t.pinned).map(t => t.id), features?.hasFilters('root') ? tr("Close matching unpinned tabs in this window?") : tr("Close unpinned tabs in this window?"));
 $('search-input').addEventListener('input', () => {
     if (state.view !== 'inactive') state.view = $('search-input').value.trim() ? 'all' : 'open'; render();
 });
-for (const [id,key] of [['opt-all-windows','allWindows'],['opt-nested','nested'],['opt-groups','searchGroups']]) $(id).addEventListener('change', () => { if(id==='opt-all-windows'){closePageMenu();$('opt-all-windows').setAttribute('aria-checked',String($('opt-all-windows').checked));}render(); if (!privateMode && (id === 'opt-all-windows' ? preferences.rememberScope : preferences.rememberOptions)) savePreferences({[key]:$(id).checked}).catch(e=>announce(e.message,true)); });
-$('sort-select').addEventListener('change', () => { savePreferences({ sortMode: $('sort-select').value }).catch(e=>announce(e.message,true)); render(); });
+for (const [id,key] of [['opt-all-windows','allWindows'],['opt-nested','nested'],['opt-groups','searchGroups']]) $(id).addEventListener('change', () => { if(id==='opt-all-windows'){closePageMenu();$('opt-all-windows').setAttribute('aria-checked',String($('opt-all-windows').checked));}render(); if (!privateMode && (id === 'opt-all-windows' ? preferences.rememberScope : preferences.rememberOptions)) savePreferences({[key]:$(id).checked}).catch(e=>announce(translateError(e.message),true)); });
+$('sort-select').addEventListener('change', () => { savePreferences({ sortMode: $('sort-select').value }).catch(e=>announce(translateError(e.message),true)); render(); });
 const compactColumns = matchMedia('(max-width:650px)'), mediumColumns = matchMedia('(max-width:900px)');
 function syncCardSizeLabel() {
     const preferred = 7 - Number($('size-slider').value);
     const columns = Math.min(preferred, compactColumns.matches ? 2 : mediumColumns.matches ? 3 : 6);
-    $('size-slider').setAttribute('aria-valuetext', `${columns} ${columns === 1 ? 'tab' : 'tabs'} per row${columns < preferred ? ` (${preferred} preferred on wider windows)` : ''}`);
-    $('size-value').textContent = `${columns} per row`;
+    $('size-slider').setAttribute('aria-valuetext', tr("{0} {1} per row{2}", [columns, columns === 1 ? tr('tab') : tr('tabs'), columns < preferred ? tr(" ({0} preferred on wider windows)", [preferred]) : '']));
+    $('size-value').textContent = tr("{0} per row", [columns]);
 }
 compactColumns.addEventListener('change', syncCardSizeLabel);
 mediumColumns.addEventListener('change', syncCardSizeLabel);
@@ -1074,7 +1077,7 @@ function applyCardSize(columns) {
     flushGridLayout();
 }
 $('size-slider').addEventListener('input', () => applyCardSize(7 - Number($('size-slider').value)));
-$('size-slider').addEventListener('change', () => savePreferences({ preferredColumns: 7 - Number($('size-slider').value) }).catch(e=>announce(e.message,true)));
+$('size-slider').addEventListener('change', () => savePreferences({ preferredColumns: 7 - Number($('size-slider').value) }).catch(e=>announce(translateError(e.message),true)));
 const searchDisclosure = $('search-disclosure');
 function syncSearchFocus() {}
 const categoryTransition=createCategoryTransition({content:$('tab-content'),motion:materialMotion});
@@ -1149,10 +1152,10 @@ window.addEventListener('blur', releaseCardPointer);
 window.addEventListener('focus', scheduleRefresh);
 
 const customBackground = mountBackground(chrome);
-mountWallpaperContrast(document.querySelector('#custom-background img'));
 const appearanceMedia = matchMedia('(prefers-color-scheme: dark)');
 appearanceMedia.addEventListener('change', () => applyAppearance(document.documentElement, preferences, appearanceMedia.matches));
 function applyPreferences(next) {
+    if (resolveLanguage(next.language, chrome.i18n?.getUILanguage?.() || navigator.language) !== currentLanguage()) { location.reload(); return; }
     const previous = preferences; preferences = next;
     applyBackgroundAdjustments(document.documentElement, preferences);
     applyAppearance(document.documentElement, preferences, appearanceMedia.matches);
@@ -1174,12 +1177,12 @@ function applyPreferences(next) {
 }
 async function savePreferences(patch) { const next = await rpc('updatePreferences', patch); applyPreferences(next); return next; }
 function updateShortcutHints() {
-    const mapping = {'undo-btn':'undo','select-tabs-btn':'select','sort-select':`sort${({default:'Default',title:'Title',domain:'Domain',accessed:'Accessed'})[preferences.sortMode]}`,'opt-all-windows':'allWindows','search-input':'focusSearch','group-search':'focusSearch','size-slider':['larger','smaller']};
+    const mapping = {'undo-btn':'undo','select-tabs-btn':'select','sort-select':`sort${({default:'Default',title:'Title',domain:'Domain',accessed:'Accessed'})[preferences.sortMode]}`,'opt-all-windows':'allWindows','search-input':'focusSearch','group-search':'focusSearch','size-slider':['smaller','larger']};
     document.querySelectorAll('.shortcut-hint').forEach(e=>e.remove());
     for (const [id,action] of Object.entries(mapping)) {
         const control=$(id),actions=[action].flat(),bindings=actions.map(key=>preferences.shortcuts[key]).filter(Boolean),binding=bindings.join(' ');
         if(binding)control.setAttribute('aria-keyshortcuts',binding.replace(/Mod/g,/Mac/.test(navigator.platform)?'Meta':'Control'));else control.removeAttribute('aria-keyshortcuts');
-        if(preferences.shortcutHints&&binding){const hint=el('span','shortcut-hint',bindings.join(' / ').replace(/Mod/g,/Mac/.test(navigator.platform)?'⌘':'Ctrl'));hint.setAttribute('aria-hidden','true');control.after(hint);}
+        if(preferences.shortcutHints&&binding&&id!=='sort-select'){const hint=el('span','shortcut-hint',bindings.join(' / ').replace(/Mod/g,/Mac/.test(navigator.platform)?'⌘':'Ctrl'));hint.setAttribute('aria-hidden','true');if(id==='select-tabs-btn')control.append(hint);else control.after(hint);}
     }
 }
 async function init() {
@@ -1187,9 +1190,9 @@ async function init() {
     state.windowId = win.id; preferences = saved;
     $('privacy-note').hidden = !privateMode;
     if (privateMode) {
-        document.querySelector('h1').firstChild.textContent = 'Incognito Tabs ';
+        document.querySelector('h1').firstChild.textContent = tr("Incognito Tabs ");
         for (const view of ['inactive','recent']) document.querySelector(`[data-view=${view}]`).hidden = true;
-        $('all-windows-label').textContent = 'Show all windows';
+        $('all-windows-label').textContent = tr("Show all windows");
     }
     $('opt-nested').checked = preferences.rememberOptions && !privateMode ? preferences.nested : DEFAULTS.nested;
     $('opt-groups').checked = preferences.rememberOptions && !privateMode ? preferences.searchGroups : DEFAULTS.searchGroups;
@@ -1197,7 +1200,7 @@ async function init() {
     protectedGroups = privateMode ? [] : await rpc('protectedGroups');
     features = setupGridPersonalization({api:chrome,privateMode,getState:()=>state,getPrefs:()=>preferences,savePrefs:savePreferences,rpc,render,announce,motion:materialMotion,
         selection: (scope,mode) => { if(mode==='clear') {selections[scope].clear();} else if(mode==='exit'){selections[scope].clear();selecting[scope]=false;}else{selecting[scope]=!selectionActive(selecting[scope],selections[scope]);if(!selecting[scope])selections[scope].clear();}syncSelection(); },
-        undo: () => $('undo-btn').click(), resize: delta => { const columns = Math.max(1,Math.min(6,preferences.preferredColumns+delta));savePreferences({preferredColumns:columns}).catch(e=>announce(e.message,true)); }
+        undo: () => $('undo-btn').click(), resize: delta => { const columns = Math.max(1,Math.min(6,preferences.preferredColumns+delta));savePreferences({preferredColumns:columns}).catch(e=>announce(translateError(e.message),true)); }
     });
     settingsPanel = mountSettings({background:customBackground,dialog:$('settings-dialog'),privateMode,getPrefs:()=>preferences,save:savePreferences,rpc,getGroups:()=>state.groups,getProtected:()=>protectedGroups,isNestedForced:()=>$('opt-nested').disabled,setProtected:async ids=>{protectedGroups=await rpc('protectedGroups',ids);render();},onApplied:applyPreferences,motion:materialMotion});
     applyPreferences(preferences);
@@ -1205,15 +1208,15 @@ async function init() {
     mountGlassSurfaces(document.querySelector('#custom-background img'));
     mountLiquidInteractions(() => preferences);
     await Promise.all([refresh(), refreshRecent(), updateUndo()]);
-    await features.init(); updateShortcutHints();
+    await features.init(); await features.resume(await rpc('takeQuickView'),openGroup); updateShortcutHints();
 }
 async function openGridWindow(incognito) {
     await run(async()=>{
-        if(incognito&&!await chrome.extension.isAllowedIncognitoAccess()){announce('Enable Allow in Incognito in Chrome’s extension details, then try again.');return;}
+        if(incognito&&!await chrome.extension.isAllowedIncognitoAccess()){announce(tr("Enable Allow in Incognito in Chrome’s extension details, then try again."));return;}
         await chrome.windows.create({incognito,url:gridUrl});
     });
 }
 $('regular-window-btn').onclick=()=>openGridWindow(false);
 $('private-window-btn').onclick=()=>openGridWindow(true);
 setInterval(() => { if (!state.busy && !state.dragging) render(); }, 60000);
-init().catch(error => announce(error.message, true));
+init().catch(error => announce(translateError(error.message), true));

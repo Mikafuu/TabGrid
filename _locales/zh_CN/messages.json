@@ -1,0 +1,8 @@
+{
+  "description": {
+    "message": "将 Chrome 标签页和分组整合为直观网格的桌面扩展程序。"
+  },
+  "openTabGrid": {
+    "message": "打开 TabGrid"
+  }
+}

@@ -1,17 +1,19 @@
 {
   "manifest_version": 3,
   "name": "TabGrid",
-  "version": "1.0",
-  "description": "A desktop Chrome extension that brings your tabs and tab groups into one visual grid.",
+  "version": "1.1.0",
+  "description": "__MSG_description__",
   "permissions": [
     "tabs",
+    "activeTab",
     "tabGroups",
     "storage",
     "scripting",
     "favicon",
     "unlimitedStorage",
     "history",
-    "sessions"
+    "sessions",
+    "alarms"
   ],
   "web_accessible_resources": [
     {
@@ -51,7 +53,8 @@
   },
   "commands": {
     "_execute_action": {
-      "description": "Open TabGrid"
+      "description": "__MSG_openTabGrid__"
     }
-  }
+  },
+  "default_locale": "en"
 }

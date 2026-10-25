@@ -1,8 +1,11 @@
-import { WindowOrder } from '../lib/window-order.mjs';
-import { Personalization } from '../lib/personalization.mjs';
+import {GridLifecycle} from '../lib/grid-lifecycle.mjs';
+import { initializeLanguage } from '../lib/i18n.mjs';
+await initializeLanguage({storage:{local:{get:async()=>JSON.parse(localStorage.getItem(new URLSearchParams(location.search).has('private')?'tabgrid-fixture-private':'tabgrid-fixture-local')||'{}')}}});
+const { WindowOrder } = await import('../lib/window-order.mjs');
+const { Personalization } = await import('../lib/personalization.mjs');
 // Deterministic UI sandbox. No real browser tabs, history, or account data is used.
-import { TabActions } from '../lib/tab-actions.mjs';
-import { fixture } from './chrome-mock.mjs';
+const { TabActions } = await import('../lib/tab-actions.mjs');
+const { fixture } = await import('./chrome-mock.mjs');
 const gridUrl = new URL('/grid.html', location.href).href;
 // Test-only capability failure, before the application mounts its renderer.
 if(new URLSearchParams(location.search).has('no-gpu')) Object.defineProperty(navigator,'gpu',{value:undefined,configurable:true});
@@ -55,8 +58,10 @@ api.storage.onChanged=event();
 const local=JSON.parse(localStorage.getItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local')||'{}');
 api.storage.local={ async get(keys){ return Object.fromEntries((Array.isArray(keys)?keys:typeof keys === 'string'?[keys]:Object.keys(local)).map(k=>[k,local[k]])); }, async set(values){ const changes=Object.fromEntries(Object.entries(values).map(([k,v])=>[k,{newValue:v}]));Object.assign(local,values);localStorage.setItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local',JSON.stringify(local));api.storage.onChanged.emit(changes,'local'); },async remove(key){const changes={};for(const k of [key].flat()){changes[k]={oldValue:local[k]};delete local[k];}localStorage.setItem(privateMode?'tabgrid-fixture-private':'tabgrid-fixture-local',JSON.stringify(local));api.storage.onChanged.emit(changes,'local');} };
 Object.assign(f.storage,JSON.parse(sessionStorage.getItem('tabgrid-fixture-session')||'{}'));
-const originalSet=api.storage.session.set;
-api.storage.session.set=async data=>{await originalSet(data);sessionStorage.setItem('tabgrid-fixture-session',JSON.stringify(Object.fromEntries(Object.entries(f.storage).filter(([k])=>k.startsWith('tabgridView:')||k.startsWith('tabgridGroupView:')||k==='tabgridProtectedGroups'))));api.storage.onChanged.emit(Object.fromEntries(Object.entries(data).map(([k,v])=>[k,{newValue:v}])),'session');};
+const originalSet=api.storage.session.set,originalRemove=api.storage.session.remove;
+function persistSession(){sessionStorage.setItem('tabgrid-fixture-session',JSON.stringify(Object.fromEntries(Object.entries(f.storage).filter(([k])=>k.startsWith('tabgridView:')||k.startsWith('tabgridGroupView:')||k.startsWith('tabgridQuickView:')||k==='tabgridProtectedGroups'))));}
+api.storage.session.set=async data=>{await originalSet(data);persistSession();api.storage.onChanged.emit(Object.fromEntries(Object.entries(data).map(([k,v])=>[k,{newValue:v}])),'session');};
+api.storage.session.remove=async key=>{await originalRemove(key);persistSession();};
 for(const name of ['onCreated','onUpdated','onRemoved','onMoved','onAttached','onDetached','onActivated','onReplaced']) api.tabs[name]=event();
 for(const name of ['onCreated','onUpdated','onRemoved','onMoved']) api.tabGroups[name]=event();
 api.windows.onRemoved=event();api.sessions.onChanged=event();
@@ -92,8 +97,9 @@ if (new URLSearchParams(location.search).has('liquid')) {
 }
 const windowOrder=new WindowOrder(api,privateMode);
 api.commands={async getAll(){return [{name:'_execute_action',shortcut:''}];}};
+const gridLifecycle=new GridLifecycle(api,gridUrl,{privateMode,preferences:()=>personalization.preferences()});
 let messageQueue=Promise.resolve();
-api.runtime={getURL(path){return new URL(path.startsWith('/')?path:'/'+path,location.href).href;},async sendMessage(message){const work=async()=>{try{const a=message.action,args=message.args||[];const methods={windowOrder:()=>windowOrder.snapshot(),preferences:()=>personalization.preferences(),updatePreferences:()=>personalization.updatePreferences(args[0]),searchHistory:()=>personalization.history(...args),background:()=>personalization.background(...args),preview:()=>personalization.preview(...args),importSettings:()=>personalization.import(...args),protectedGroups:()=>personalization.protectedGroups(...args)};if(methods[a])return {result:await methods[a]()};return {result:message.action==='undo'?await f.actions.undo(message.args[0],99):await f.actions[message.action](...message.args)};}catch(error){return {error:error.message};}};const pending=messageQueue.then(work,work);messageQueue=pending.catch(()=>{});return pending;}};
+api.runtime={getURL(path){return new URL(path.startsWith('/')?path:'/'+path,location.href).href;},async sendMessage(message){const work=async()=>{try{const a=message.action,args=message.args||[];const methods={switchFromGrid:()=>gridLifecycle.switchTo(99,args[0],args[1]),takeQuickView:()=>gridLifecycle.takeView(),windowOrder:()=>windowOrder.snapshot(),preferences:()=>personalization.preferences(),updatePreferences:()=>personalization.updatePreferences(args[0]),searchHistory:()=>personalization.history(...args),background:()=>personalization.background(...args),preview:()=>personalization.preview(...args),importSettings:()=>personalization.import(...args),protectedGroups:()=>personalization.protectedGroups(...args)};if(methods[a])return {result:await methods[a]()};return {result:message.action==='undo'?await f.actions.undo(message.args[0],99):await f.actions[message.action](...message.args)};}catch(error){return {error:error.message};}};const pending=messageQueue.then(work,work);messageQueue=pending.catch(()=>{});return pending;}};
 globalThis.chrome=api;
 const panel=document.createElement('div');panel.style.cssText='padding:12px;border:1px dashed #808080;margin:12px 0;height:180px;overflow:auto';panel.textContent='UI test sandbox — simulated tabs only. ';
 if(new URLSearchParams(location.search).has('liquid')) {

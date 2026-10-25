@@ -1,0 +1,8 @@
+{
+  "description": {
+    "message": "A desktop Chrome extension that brings your tabs and tab groups into one visual grid."
+  },
+  "openTabGrid": {
+    "message": "Open TabGrid"
+  }
+}

@@ -220,3 +220,34 @@ html body .group-exit-copy :is(.group-feedback,.drag-tip) { background: none; bo
     html[data-visual-style=glass] .group-ungroup-bar { background: var(--surface); backdrop-filter: none; }
     html[data-visual-style=glass] .group-ungroup-bar[data-ready] { background: var(--selected); }
 }
+
+/* Scroll content independently of the decorative glass canvas. */
+.search-history { overflow: hidden; overscroll-behavior: none; padding: 4px; }
+.search-history-scroll { max-height: min(252px,40vh); overflow: auto; overscroll-behavior: none; scrollbar-width: thin; }
+.search-history [role=option] { display: flex; align-items: center; gap: 8px; }
+.search-history [role=option] > span { flex: 1; min-width: 0; }
+html body .search-history .history-remove { display: grid; place-items: center; flex: 0 0 28px; width: 28px; height: 28px; min-height: 28px; padding: 0; border: 0; background: none; box-shadow: none; }
+.history-remove::before { content: ''; width: 18px; height: 18px; background: currentColor; mask: url("assets/icons/material/close.svg") center / contain no-repeat; }
+.menu-scroll,.filter-picker-scroll,.drawer-list,.settings-tabs,.settings-panels { overscroll-behavior: none; }
+.card-mute { flex-shrink: 0; width: 28px; height: 28px; padding: 5px; border: 0; background: transparent; color: inherit; }
+.card-mute::before { content: ''; display: block; width: 18px; height: 18px; background: currentColor; mask: url('assets/icons/material/volume_off.svg') center / contain no-repeat; }
+#select-tabs-btn { display: flex; align-items: center; gap: 8px; }
+#select-tabs-btn .shortcut-hint { margin-inline-start: auto; white-space: nowrap; }
+#size-slider ~ .shortcut-hint,.liquid-slider + .shortcut-hint { display: block; margin-inline: 0; text-align: center; white-space: nowrap; }
+/* Native manual popovers stay above a group dialog without changing focus. */
+html body :is(#status,#undo-toast) { inset: auto; bottom: max(20px,env(safe-area-inset-bottom)); left: 24px; right: auto; margin: 0; transform: none; width: fit-content; max-width: calc(100vw - 48px); overflow: hidden; }
+html body #status { padding: 12px 16px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--text); pointer-events: none; }
+html body #status:popover-open { display: block; }
+html body #undo-toast:popover-open { display: flex; }
+/* These popovers finish their exit before hiding, so a second discrete CSS
+   display/overlay transition would flash their resting appearance again. */
+html body :is(#status,#undo-toast)[popover] { transition: none; }
+#group-feedback { display: none; }
+
+html body :is(#status,#undo-toast)[popover]:not(:popover-open) { display: none !important; }
+/* Undo retains its established centered placement; status tips stay at the left. */
+html body #undo-toast { left: 50%; transform: translateX(-50%); }
+
+/* Confirmation dialogs also keep their optical layer outside scrolling content. */
+#action-dialog { overflow: hidden; }
+#action-form { max-height: calc(85vh - 50px); overflow: auto; overscroll-behavior: none; scrollbar-width: thin; padding: 6px; margin: -6px; }

@@ -25,10 +25,6 @@ html.has-custom-background #custom-background { display: block; }
 
 .background-sample img { filter: blur(calc(var(--background-blur,0px) * var(--preview-scale,1))); }
 
-/* Bare captions adapt to the wallpaper without adding a toolbar panel. */
-.wallpaper-label, #size-value.wallpaper-label { color: var(--wallpaper-label-color,inherit); text-shadow: var(--wallpaper-label-shadow,none); }
-@media (forced-colors:active) { .wallpaper-label, #size-value.wallpaper-label { color: CanvasText; text-shadow: none; } }
-
 html.has-custom-background :is(#pinned-heading,.window-pinned > h4,#recent-heading,#privacy-note,#tab-content > section > .section-note,#tab-content .empty) {
     width: fit-content; max-width: 100%; padding: 4px 8px;
     background: color-mix(in srgb,var(--bg) 94%,transparent);

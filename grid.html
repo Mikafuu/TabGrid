@@ -29,18 +29,18 @@
     </header>
     <div class="page-controls">
         <div class="search-row">
-            <div class="search-disclosure" id="search-disclosure"><label class="search-field"><span class="wallpaper-label">Search tabs</span>
+            <div class="search-disclosure" id="search-disclosure"><label class="search-field"><span>Search tabs</span>
                 <input type="search" id="search-input" placeholder="Search titles or URLs" autocomplete="off">
             </label>
             <div class="search-filters" id="search-filters" hidden>
                 <label><input type="checkbox" role="switch" id="opt-nested" checked> Search inside groups</label>
                 <label><input type="checkbox" role="switch" id="opt-groups" checked> Search groups</label>
             </div></div>
-            <label class="sort-control"><span class="wallpaper-label">Sort</span>
+            <label class="sort-control"><span>Sort</span>
                 <select id="sort-select"><option value="default">Tab order</option><option value="title">Title (A–Z)</option><option value="domain">Website (A–Z)</option><option value="accessed">Last used</option></select>
             </label>
-            <label class="size-control"><span class="wallpaper-label">Card size</span>
-                <span id="size-range" class="size-range"><input id="size-slider" aria-label="Card size" type="range" min="1" max="6" step="1" value="3" list="size-levels" aria-valuetext="4 tabs per row"><span class="size-knob" aria-hidden="true"></span></span><output id="size-value" class="wallpaper-label" for="size-slider">4 per row</output>
+            <label class="size-control"><span>Card size</span>
+                <span id="size-range" class="size-range"><input id="size-slider" aria-label="Card size" type="range" min="1" max="6" step="1" value="3" list="size-levels" aria-valuetext="4 tabs per row"><span class="size-knob" aria-hidden="true"></span></span><output id="size-value" for="size-slider">4 per row</output>
                 <datalist id="size-levels"><option value="1"></option><option value="2"></option><option value="3"></option><option value="4"></option><option value="5"></option><option value="6"></option></datalist>
             </label>
         </div>
@@ -109,7 +109,7 @@
     <div id="context-menu" popover="manual" role="menu" aria-label="Tab actions"></div>
     <div id="context-submenu" popover="manual" role="menu"></div>
     <aside id="undo-toast" hidden><span id="undo-message" role="status"></span><button id="undo-btn">Undo</button><button id="dismiss-undo" aria-label="Dismiss undo message">×</button></aside>
-    <p id="status" role="status" aria-live="polite"></p>
-    <script type="module" src="grid.js"></script>
+    <div id="status"><span id="status-message" role="status" aria-live="polite"></span></div>
+    <script type="module" src="grid-bootstrap.mjs"></script>
 </body>
 </html>

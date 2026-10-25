@@ -11,7 +11,7 @@ http.createServer(async(req,res)=>{
     if(!path.startsWith(root+'/')) {res.writeHead(403).end();return;}
     try {
         let data=await readFile(path);
-        if(relative==='grid.html') data=data.toString().replace('<script type="module" src="grid.js"></script>','<script type="module" src="tests/preview-chrome.mjs"></script>');
+        if(relative==='grid.html') data=data.toString().replace('<script type="module" src="grid-bootstrap.mjs"></script>','<script type="module" src="tests/preview-chrome.mjs"></script>');
         if(request.searchParams.has('dark')) {
             if(relative==='grid.html') data=data.toString().replace('href="grid.css"','href="grid.css?dark"').replace('href="theme.css"','href="theme.css?dark"');
             if(relative.endsWith('.css')) data=data.toString().replaceAll('(prefers-color-scheme: dark)','all');

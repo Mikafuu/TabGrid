@@ -20,3 +20,5 @@ Pinned upstream commit: `737e3324305806514d7909874fa1818ae1808232`. SVG files ar
 - `image.svg`: `src/image/image/materialiconsoutlined/24px.svg`
 - `keyboard.svg`: `src/hardware/keyboard/materialiconsoutlined/24px.svg`
 - `save.svg`: `src/content/save/materialiconsoutlined/24px.svg`
+
+- `volume_off.svg`: `src/av/volume_off/materialiconsoutlined/24px.svg`

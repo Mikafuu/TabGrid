@@ -41,7 +41,7 @@ function groupingFixture(){
     const doc={createElement:()=>{const n={hidden:true,dataset:{},setAttribute(){},getBoundingClientRect:()=>({left:24,right:976,top:586,bottom:650})};nodes.push(n);return n;},body:{append(){}},addEventListener:(type,fn)=>listeners.set(type,fn),elementFromPoint:()=>({closest:()=>null}),querySelectorAll:()=>hit?[target]:[]};
     const dialog={open:false,dataset:{},append(){},getBoundingClientRect:()=>({left:24,right:976,top:50,bottom:650})};
     const controller=createDragGrouping({enabled:()=>enabled,canReorder:()=>reorder,dialog,feedback:{direct(){}},handoff:()=>{handoffs++;dialog.open=false;},doc,win:{innerWidth:1000,innerHeight:700,addEventListener(){}}});
-    return {controller,source,target,dialog,tip:nodes[0],bar:nodes[1],listeners,handoffs:()=>handoffs,noHit:()=>{hit=false;},disable:()=>{enabled=false;},disableReorder:()=>{reorder=false;}};
+    return {controller,source,target,dialog,bar:nodes[0],listeners,handoffs:()=>handoffs,noHit:()=>{hit=false;},disable:()=>{enabled=false;},disableReorder:()=>{reorder=false;}};
 }
 test('overlap immediately selects a merge target, leaving clears it, and disabling cancels',()=>{
     const f=groupingFixture();f.controller.start(f.source,'root',null);

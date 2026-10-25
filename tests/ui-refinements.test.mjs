@@ -1,6 +1,5 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {wallpaperTextColor} from '../lib/background-contrast.mjs';
 import {panBackground} from '../lib/background-crop.mjs';
 import {clippedTextureCopy,wallpaperTexture} from '../lib/glass-backdrop.mjs';
 import {inSubmenuCorridor,bindSubmenuHover} from '../lib/tab-menu.mjs';
@@ -66,10 +65,4 @@ test('100% crop uses only aspect-ratio overflow, without hidden enlargement',()=
  // A wide source can pan horizontally, but its full height is already visible.
  assert.deepEqual(panBackground(start,200,100,{...box,imageWidth:1600,imageHeight:600}),{backgroundX:25,backgroundY:50});
  assert.deepEqual(panBackground(start,32,-48,{...box,zoom:150}),panBackground(start,16,-24,{...box,width:400,height:300,zoom:150}));
-});
-test('wallpaper captions choose contrasting foregrounds from rendered pixels',()=>{
- assert.equal(wallpaperTextColor([0,0,0,255]),'#ffffff');
- assert.equal(wallpaperTextColor([255,255,255,255]),'#000000');
- assert.equal(wallpaperTextColor([40,50,60,255,80,70,60,255]),'#ffffff');
- assert.equal(wallpaperTextColor([180,190,200,255]),'#000000');
 });

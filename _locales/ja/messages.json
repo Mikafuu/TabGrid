@@ -1,0 +1,8 @@
+{
+  "description": {
+    "message": "Chrome のタブとタブグループをひとつの見やすいグリッドにまとめる拡張機能。"
+  },
+  "openTabGrid": {
+    "message": "TabGrid を開く"
+  }
+}

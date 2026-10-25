@@ -137,3 +137,10 @@ test('drag-start measurement overrides coordinates cached during a scaled group 
     const effect=motion.plugin(element,'remain',{left:10,top:10,width:70,height:40},after);
     assert.equal(effect.timing.duration,0);assert.equal(effect.frames[0].transform,'translate(0px, 0px) scale(1, 1)');
 });
+
+test('grid refresh leaves a returning card surface to its single return owner',()=>{
+ const element=card(),base=element.matches;element.matches=selector=>selector.includes('[data-card-return]')||base(selector);
+ const motion=gridMotion({children:[element]},{Effect});motion.capture();motion.captureLayout();
+ const [effect]=motion.plugin(element,'remain',before,after);
+ assert.equal(effect.target,element);assert.deepEqual(effect.frames,[]);
+});

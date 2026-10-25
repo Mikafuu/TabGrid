@@ -92,7 +92,21 @@ html[data-color-mode=dark][data-visual-style=glass] .card.last-opened > .card-su
 html[data-color-mode=dark][data-visual-style=glass] .sources { background: color-mix(in srgb,var(--surface) 52%,transparent); }
 html[data-color-mode=dark][data-visual-style=glass] .sources > .liquid-tab-indicator { --liquid-surface-tint: color-mix(in srgb,var(--surface) 66%,transparent); }
 
-/* Expanded window headers must retain a readable film over bright wallpaper. */
+/* Window headings retain the same translucent film as other glass controls. */
 html[data-visual-style=glass] .window-toggle[data-glass-owner]:is(:hover,:active,[aria-expanded]) {
-    --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 90%,var(--window-color)) 94%,transparent);
+    --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 90%,var(--window-color)) 28%,transparent);
+}
+
+/* Section captions share the same glass material as the surrounding panels. */
+html.has-custom-background[data-visual-style=glass] :is(#pinned-heading,.window-pinned > h4,#recent-heading,#recent-section > .section-note) {
+    position: relative; isolation: isolate; padding: 8px 14px;
+    border: 1px solid var(--glass-edge); border-radius: 16px;
+    background: var(--liquid-surface-tint); background-image: var(--glass-sheen);
+    box-shadow: var(--material-shadow); color: var(--text);
+}
+html.has-custom-background[data-visual-style=glass] :is(#pinned-heading,.window-pinned > h4,#recent-heading,#recent-section > .section-note):not(.filter-glass-ready) {
+    backdrop-filter: blur(18px) saturate(1.2);
+}
+@media (prefers-reduced-transparency:reduce),(forced-colors:active) {
+    html.has-custom-background[data-visual-style=glass] :is(#pinned-heading,.window-pinned > h4,#recent-heading,#recent-section > .section-note) { backdrop-filter: none; box-shadow: none; }
 }

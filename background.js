@@ -1,3 +1,5 @@
+import { GridLifecycle } from './lib/grid-lifecycle.mjs';
+import { tr } from './lib/i18n.mjs';
 import { captureBeforeOpen, installPreviewRefresh } from './lib/preview-refresh.mjs';
 import { WindowOrder } from './lib/window-order.mjs';
 import { Personalization } from './lib/personalization.mjs';
@@ -7,6 +9,7 @@ import { isGridUrl } from './lib/tab-model.mjs';
 const gridUrl = chrome.runtime.getURL('grid.html');
 const actions = new TabActions(chrome, gridUrl);
 const personalization = new Personalization(chrome, gridUrl);
+const gridLifecycle=new GridLifecycle(chrome,gridUrl,{privateMode:actions.private,preferences:()=>personalization.preferences()});
 const previewRefresh = installPreviewRefresh(chrome, personalization);
 let queue = Promise.resolve();
 const windowOrder = new WindowOrder(chrome, actions.private);
@@ -15,20 +18,17 @@ queue = queue.then(seedWindows,seedWindows);
 chrome.windows.onCreated.addListener(win=>{const task=()=>windowOrder.created(win);queue=queue.then(task,task);queue.catch(()=>{});});
 chrome.windows.onRemoved.addListener(id=>{const task=()=>windowOrder.removed(id);queue=queue.then(task,task);queue.catch(()=>{});});
 chrome.action.onClicked.addListener(async tab => {
+    try {
     const remember = () => actions.rememberOpened(`tab:${tab.id}`);
     queue = queue.then(remember, remember);
     queue.catch(() => {});
     await captureBeforeOpen(personalization, tab);
-    const tabs = await chrome.tabs.query({ windowId: tab.windowId });
-    // Do not override another tab switch made while the final capture waited.
-    if (tabs.find(t => t.active)?.id !== tab.id) return;
-    const existing = tabs.find(t => isGridUrl(t.url, gridUrl));
-    if (existing) await chrome.tabs.update(existing.id, { active: true });
-    else await chrome.tabs.create({ url: gridUrl, windowId: tab.windowId });
+    await gridLifecycle.open(tab);
+    } catch { /* The source window/tab can close while capture is pending. */ }
 });
 
-// A restored grid is an ordinary extension page. Never close unrelated tabs or
-// hijack Chrome's restore shortcut. Keep the grid available when switching tabs.
+// Reuse grids on explicit opening; leave restored duplicates alone so Chrome's
+// recently-closed history can be consumed without generating replacement entries.
 chrome.runtime.onMessage.addListener((message, sender, respond) => {
     if (message?.type === 'tabgrid-preview-activity') {
         previewRefresh.fromPage(message, sender).then(() => respond({}));
@@ -37,7 +37,9 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
     if (sender.id !== chrome.runtime.id || !isGridUrl(sender.url, gridUrl) || message?.type !== 'tabgrid-action') return;
     const run = async () => {
         const { action, args = [] } = message;
-        if (!Array.isArray(args)) throw new Error('Invalid action arguments');
+        if (!Array.isArray(args)) throw new Error(tr("Invalid action arguments"));
+        if (action === 'switchFromGrid') return gridLifecycle.switchTo(sender.tab.id,args[0],args[1]);
+        if (action === 'takeQuickView') return gridLifecycle.takeView();
         if (action === 'windowOrder') return windowOrder.snapshot();
         if (action === 'preferences') return personalization.preferences();
         if (action === 'updatePreferences') return personalization.updatePreferences(args[0]);
@@ -46,8 +48,8 @@ chrome.runtime.onMessage.addListener((message, sender, respond) => {
         if (action === 'preview') return personalization.preview(...args);
         if (action === 'importSettings') return personalization.import(...args);
         if (action === 'protectedGroups') return personalization.protectedGroups(...args);
-        const allowed = ['close', 'undo', 'restoreSession', 'group', 'move', 'reorder', 'dropAt', 'rememberOpened', 'lastOpenedSnapshot', 'addLinks', 'returnActive', 'activitySnapshot', 'dropIntoGroup', 'newAfter', 'duplicate', 'siteSoundSnapshot', 'setSiteSound'];
-        if (!allowed.includes(action)) throw new Error('Unknown tab action');
+        const allowed = ['close', 'undo', 'restoreSession', 'group', 'ungroup', 'move', 'reorder', 'dropAt', 'rememberOpened', 'lastOpenedSnapshot', 'addLinks', 'returnActive', 'activitySnapshot', 'dropIntoGroup', 'newAfter', 'duplicate', 'siteSoundSnapshot', 'setSiteSound'];
+        if (!allowed.includes(action)) throw new Error(tr("Unknown tab action"));
         if (action === 'undo') return actions.undo(args[0], sender.tab?.id ?? null);
         return actions[action](...args);
     };
