@@ -22,18 +22,18 @@
 
 ## 安装
 
-需要 **Chrome 120 或更新版本**。依赖和字体已包含在仓库中，直接安装源码无需命令行或构建步骤。
+需要 **Chrome 120 或更新版本**。发布包已包含依赖和字体，无需命令行或构建步骤。
 
-1. 在 GitHub 仓库页面选择 **Code → Download ZIP**。
-2. 解压，并将文件夹放在长期保留的位置。
+1. 下载[最新版本的 **TabGrid.zip**](https://github.com/Morikana39/TabGrid/releases/latest/download/TabGrid.zip)，或打开[发布页面](https://github.com/Morikana39/TabGrid/releases/latest)，在 **Assets** 中选择 **TabGrid.zip**。请选择这个安装包，不要下载 GitHub 自动生成的 **Source code** 源码压缩包，也不要使用 **Code → Download ZIP**。
+2. 解压 `TabGrid.zip`，并将解压后的文件夹放在长期保留的位置。
 3. 打开 `chrome://extensions`，开启**开发者模式**。
-4. 点击**加载已解压的扩展程序**，选择包含 `manifest.json` 的文件夹。
+4. 点击**加载已解压的扩展程序**，选择解压后包含 `manifest.json` 的文件夹。
 5. 在 Chrome 的扩展程序菜单（拼图图标）中固定 **TabGrid**。
 6. 点击扩展图标打开 TabGrid。
 
-图文说明见 [Chrome 安装指南](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)。更新时，用最新下载覆盖安装文件夹中的文件，在扩展管理页面点击**重新加载**，再重新打开 TabGrid。
+图文说明见 [Chrome 安装指南](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)。更新时，从上方发布链接下载最新的 `TabGrid.zip` 并解压，用其中的文件覆盖现有安装文件夹中的文件。保留原安装文件夹，在扩展管理页面点击**重新加载**，再重新打开 TabGrid。
 
-要获得更小的安装包，可运行 `npm run package`，加载 `dist/TabGrid` 或解压 `dist/TabGrid.zip`。发布包仅保留运行所需文件及许可声明，不包含测试素材、开发截图、源码映射及未使用的依赖文件。
+发布包仅保留运行所需文件及许可声明，不包含测试素材、开发截图、源码映射及未使用的依赖文件。如需从源码自行打包，请参阅下方的开发说明。
 
 ## 使用
 

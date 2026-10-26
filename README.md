@@ -24,10 +24,10 @@ A desktop Chrome extension that brings your tabs and tab groups into one visual 
 
 ## Install
 
-Requires **Chrome 120 or later**. Dependencies and fonts are included; no terminal commands or build step are needed.
+Requires **Chrome 120 or later**. The release package includes dependencies and fonts; no terminal commands or build step are needed.
 
-1. On this repository’s GitHub page, choose **Code → Download ZIP**.
-2. Extract the ZIP and keep the extracted folder somewhere permanent.
+1. Download [**TabGrid.zip** from the latest release](https://github.com/Morikana39/TabGrid/releases/latest/download/TabGrid.zip), or open the [Releases page](https://github.com/Morikana39/TabGrid/releases/latest) and choose **TabGrid.zip** under **Assets**. Choose this installation package, not GitHub’s **Source code** archives or **Code → Download ZIP**.
+2. Extract `TabGrid.zip` and keep the extracted folder somewhere permanent.
 3. Open `chrome://extensions` in Chrome and turn on **Developer mode**.
 4. Click **Load unpacked** and select the extracted folder containing `manifest.json`.
 5. Open Chrome’s Extensions menu (the puzzle icon) and pin **TabGrid**.
@@ -35,9 +35,9 @@ Requires **Chrome 120 or later**. Dependencies and fonts are included; no termin
 
 For illustrated instructions, see [Chrome’s installation guide](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked).
 
-**Updating:** replace the files in your installed folder with the latest download, click **Reload** for TabGrid at `chrome://extensions`, then reopen TabGrid.
+**Updating:** download the latest `TabGrid.zip` from the release link above, extract it, and replace the files in your existing installation folder with its contents. Keep the same folder, click **Reload** for TabGrid at `chrome://extensions`, then reopen TabGrid.
 
-For a smaller installation, build the release folder with `npm run package` and load `dist/TabGrid`, or extract `dist/TabGrid.zip`. The package excludes development fixtures, screenshots, source maps, and unused dependency files while retaining runtime files and license notices.
+The release package contains runtime files and license notices, excluding development fixtures, screenshots, source maps, and unused dependency files. To build it from source, see [Development](#development).
 
 ## Use TabGrid
 

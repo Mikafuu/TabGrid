@@ -22,18 +22,18 @@
 
 ## インストール
 
-**Chrome 120 以降**が必要です。依存ライブラリとフォントは同梱されているため、ソースからのインストールにコマンドやビルドは不要です。
+**Chrome 120 以降**が必要です。リリースパッケージには依存ライブラリとフォントが同梱されており、コマンドやビルドは不要です。
 
-1. GitHub のリポジトリページで **Code → Download ZIP** を選びます。
-2. ZIP を展開し、フォルダを継続して使用する場所に保存します。
-3. `chrome://extensions` を開き、**デベロッパーモード**を有効にします。
-4. **パッケージ化されていない拡張機能を読み込む**をクリックし、`manifest.json` があるフォルダを選びます。
+1. [最新版の **TabGrid.zip**](https://github.com/Morikana39/TabGrid/releases/latest/download/TabGrid.zip) をダウンロードするか、[リリースページ](https://github.com/Morikana39/TabGrid/releases/latest) の **Assets** から **TabGrid.zip** を選びます。GitHub が自動生成する **Source code** のアーカイブや **Code → Download ZIP** ではなく、このインストール用パッケージを選んでください。
+2. `TabGrid.zip` を展開し、フォルダを継続して使用する場所に保存します。
+3. Chrome で `chrome://extensions` を開き、**デベロッパーモード**を有効にします。
+4. **パッケージ化されていない拡張機能を読み込む**をクリックし、展開したフォルダのうち `manifest.json` があるものを選びます。
 5. Chrome の拡張機能メニュー（パズルのアイコン）で **TabGrid** を固定します。
 6. 拡張機能のアイコンをクリックして TabGrid を開きます。
 
-画像付きの手順は [Chrome のガイド](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)をご覧ください。更新するには、インストール先のファイルを最新版で置き換え、拡張機能の管理画面で**再読み込み**してから TabGrid を開き直します。
+画像付きの手順は [Chrome のガイド](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked)をご覧ください。更新するには、上のリリースリンクから最新の `TabGrid.zip` をダウンロードして展開し、その中身で既存のインストール先のファイルを置き換えます。同じフォルダを使い続け、拡張機能の管理画面で**再読み込み**してから TabGrid を開き直します。
 
-小さいインストール用パッケージを作るには、`npm run package` を実行し、`dist/TabGrid` を読み込むか `dist/TabGrid.zip` を展開します。このパッケージには実行に必要なファイルとライセンス通知が含まれ、テスト素材、開発用スクリーンショット、ソースマップ、未使用の依存ファイルは含まれません。
+リリースパッケージには実行に必要なファイルとライセンス通知が含まれ、テスト素材、開発用スクリーンショット、ソースマップ、未使用の依存ファイルは含まれません。ソースからパッケージを作成する場合は、下の開発の説明をご覧ください。
 
 ## 使い方
 
