@@ -6,7 +6,7 @@
 
 **English** · [简体中文](README.zh-CN.md) · [日本語](README.ja.md)
 
-A desktop Chrome extension that brings your tabs and tab groups into one visual grid. Search, organize, and personalize your workspace—all locally, with no account required.
+A local Chrome extension that displays tab and tab group thumbnails in one visual grid. Search, organize, and personalize your workspace.
 
 ## A closer look
 
@@ -18,15 +18,17 @@ A desktop Chrome extension that brings your tabs and tab groups into one visual 
 
 **Make the workspace yours.** Choose Classic, Flat, or Glassmorphism, switch between light and dark, and personalize fonts, colors, and backgrounds.
 
-![TabGrid glass appearance with Classic, Flat, and Glassmorphism style choices](images/showcase/appearance.png)
-
-*AI-generated illustrative showcases based on the interface, with sample tabs and thumbnails. These are not exact screenshots. [Artwork details](docs/showcase-artwork.md).*
+<p align="center">
+  <img src="images/showcase/appearance.png" alt="TabGrid glass appearance with Classic, Flat, and Glassmorphism style choices">
+  <br>
+  <sub><em>Illustrative showcases, not exact screenshots.<a href="https://github.com/Morikana39/TabGrid/blob/main/docs/showcase-artwork.md">Artwork details</a>.</em></sub>
+</p>
 
 ## Install
 
-Requires **Chrome 120 or later**. 
+Requires **Chrome 120 or later**.
 
-1. [**Click here**](https://github.com/Morikana39/TabGrid/releases/latest/download/TabGrid.zip) to download the latest version, or open the [Releases page](https://github.com/Morikana39/TabGrid/releases/latest) and choose **TabGrid.zip** under **Assets**. 
+1. [**Click here**](https://github.com/Morikana39/TabGrid/releases/latest/download/TabGrid.zip) to download the latest version, or open the [Releases page](https://github.com/Morikana39/TabGrid/releases/latest) and choose **TabGrid.zip** under **Assets**.
 2. Extract `TabGrid.zip` and keep the extracted folder somewhere permanent.
 3. Open `chrome://extensions` in Chrome and turn on **Developer mode**.
 4. Click **Load unpacked** and select the extracted TabGrid folder.
@@ -41,47 +43,24 @@ The release package contains runtime files and license notices, excluding develo
 
 ## Use TabGrid
 
-- **Open tabs and groups:** click a tab to switch to it; click a group to browse its tabs. Group colors match Chrome, and the last-opened tab or group is highlighted.
-- **Find a tab:** type in Search. Expand **Filters** to narrow results by website, group, pinned status, playing audio, or muted status. Use **Sort** and **Card size** to arrange the view.
-- **Move cards:** drag to reorder. Drag a card over another tab or group until it highlights, then release to group. Keep dragging past the target’s far edge to reorder instead. Inside a group, drag to the bottom **Remove from group** area and release to ungroup, or hold the card outside the panel to continue dragging on the main grid. Reordering requires **Tab order** with text search and non-group filters cleared. Grouping by dragging is on by default; the optional group drop-target drawer is off by default.
-- **Swipe to close:** enable it in **Settings → Tabs & Groups**, then drag a card left or right with the mouse. Short or mostly vertical drags are ignored. Click and hold to reorder or group. Confirmation and Undo still apply.
-- **Switch categories:** swipe horizontally with two fingers below the category bar to move between Tabs, Idle tabs (when enabled), and Recently closed. Search also includes All results. Each swipe moves one category; vertical scrolling remains available.
-- **Work across windows:** enable **⋮ → Show all windows**. Drag cards between window sections to move tabs or groups.
-- **Manage several tabs:** choose **⋮ → Select tabs**, select cards, then open **Edit**. Right-click a card or use its three-dot button for individual actions.
-- **Close and restore:** use **×** to close a tab or group. In regular windows, choose **Undo** to restore a recent close, or browse **Recently closed**. **Idle tabs** separates older tabs without automatically closing them.
-
-In regular windows, grouping and ungrouping also support **Undo**, shown at the bottom center. Click a muted card’s speaker icon to unmute it. With search history enabled, use the **×** beside an entry to remove it, or highlight an entry with the arrow keys and press **Delete**.
-
-Press **/** to focus Search, **Ctrl+Z** (Windows/Linux) or **⌘Z** (Mac) to undo outside text fields, and **Escape** to dismiss a menu or dialog.
-
-Opening TabGrid from its toolbar icon or Chrome shortcut reuses an existing grid in the same regular/Incognito context, even in another window. Manually duplicated or restored grids stay open: closing them automatically would add new entries to Chrome’s recently closed history and cause a restore loop. Chrome provides no supported extension API to exclude these closures from that history. In **Settings → Tabs & Groups**, the optional **Close TabGrid after switching to a tab** setting closes the grid only after a tab-card selection. It is off by default, retains a session-only view snapshot for the next opening, and keeps the grid open while Undo is available. These optional closures can also appear in Chrome’s recently closed history.
+- Click a tab to switch to it or a group to browse its tabs. Search titles or URLs, and use **Filters**, **Sort**, and **Card size** to adjust the view.
+- Drag cards to reorder or group them. Reordering requires **Tab order** with text search and non-group filters cleared. Enable **Show all windows** to move cards between windows.
+- Choose **⋮ → Select tabs** for bulk actions. Close cards with **×**, and use **Undo** or **Recently closed** to restore them in regular windows. Idle tabs are not automatically closed.
+- Press **/** to search, **Ctrl+Z** (Windows/Linux) or **⌘Z** (Mac) to undo outside text fields, and **Escape** to dismiss menus. Optional swipe-to-close and tab-switch closing are available in settings.
 
 ## Make it yours
 
-Open **⋮ → Extension settings**. Valid changes save automatically.
+Open **⋮ → Extension settings**; changes save automatically. Choose a language, light or dark mode, visual style, colors, fonts, and a custom background. Adjust search, tab behavior, shortcuts, preview quality, and storage limits.
 
-- **General:** choose English, Simplified Chinese, Japanese, or Follow browser; remember queries, scroll positions, and window scope; control search focus.
-- **Appearance:** choose Light, Dark, or Follow system; pick a material style, color tint, and font; adjust motion and card details.
-- **Search & Filters:** choose what to search, visible filters, and optional local search history (off by default).
-- **Tabs & Groups:** customize new-tab behavior, closing confirmations, Undo duration, and idle exclusions.
-- **Custom background:** in Appearance, choose a local JPG, PNG, or WebP image up to 1 GB, then drag the preview to reposition it, zoom to crop, and adjust transparency and blur. Large images are resized to a maximum 2,560-pixel edge and saved as a compact WebP; the original file is unchanged. Replace, reset, or remove it anytime.
-- **Previews & Storage:** control screenshot capture, choose Low / Standard / High quality, exclude websites, clear previews, and set a storage limit. Quality changes apply to future captures; Standard is the default.
-- **Keyboard:** customize page shortcuts or open Chrome’s shortcut editor to assign **Open TabGrid**.
-- **Backup:** export settings to a local JSON file or preview and apply an import. Backups exclude browsing history, tab URLs, screenshots, and custom background images.
+Settings can be exported or imported as JSON. Backups exclude browsing history, tab URLs, screenshots, and custom backgrounds.
 
 ## Privacy and offline use
 
-TabGrid’s interface, settings, fonts, and tab organization work locally without a server or cloud sync. Visiting websites still requires whatever connectivity those websites need.
+The interface, settings, fonts, and tab organization work locally without a server or cloud sync. Websites still need their usual connectivity. Previews and browsing-related data stay in local Chrome storage; optional bookmark, Reading List, and site-muting permissions are requested when used.
 
-Previews refresh when an ordinary tab opens, becomes active, or finishes loading, and after scrolling or interaction settles. A visible, focused webpage also refreshes about every 15 seconds; a 30-second background alarm provides a fallback while Chrome is running. Opening TabGrid through its toolbar icon or Chrome shortcut captures the current page before switching (up to 250 ms for ordinary websites, up to 1 second for restricted pages). This explicit action lets Chrome grant temporary `activeTab` access for pages such as the New Tab page, Chrome pages, and the Chrome Web Store. Chrome may still refuse some captures; a website icon remains the fallback. File pages also require Chrome’s file-access permission. No page script is injected into restricted pages.
+Chrome controls screenshot access. For restricted pages, open TabGrid through its toolbar icon or shortcut while the target page is active; capture may still be refused. Opening an existing TabGrid tab directly uses the latest saved preview. File pages need Chrome’s file-access permission.
 
-Switching directly to an existing TabGrid tab uses the latest saved preview. After a successful explicit capture, TabGrid can retry automatic refresh for that same restricted tab and exact URL during the current browser session. Chrome must still permit each capture. Navigation, closure, clearing previews, or a rejected capture retires this remembered eligibility. Merely visiting several New Tab pages and then switching directly to the TabGrid tab does not grant screenshot access; invoke TabGrid through its toolbar icon or assigned Chrome shortcut while the page you want to capture is active. Captures are resized to fit 960 × 600 pixels without upscaling; this reduces future local preview storage, independently of the extension’s installation size. Website exclusions and the Incognito restrictions below still apply.
-
-TabGrid uses Chrome permissions to manage tabs/groups, show recent closures, and capture previews. It stores previews and its own browsing-related data in local Chrome storage. Bookmark, Reading List, and site-muting permissions are requested only when used.
-
-For private browsing, enable **Allow in Incognito** in the extension’s Chrome details. Regular and private tabs stay separate; Incognito does not save screenshots, search history, or TabGrid Undo records.
-
-The interface follows Chrome’s language by default and supports English, Simplified Chinese (including browsers configured for other Chinese variants), and Japanese. Choose a language in **Settings → General → Language**; changing it reloads the view. Tab titles, group names, searches, and website addresses are never translated. Chrome’s extension-list description and command name follow Chrome’s own language setting.
+Enable **Allow in Incognito** to use TabGrid in private windows. Regular and private tabs stay separate; Incognito does not save screenshots, search history, or Undo records. Chrome may still record TabGrid closures in Recently closed; restored duplicate grids remain open to avoid a close/restore loop.
 
 ## Credits
 
