@@ -90,7 +90,7 @@ TabGrid は Chrome の権限を使ってタブやグループを管理し、最�
 - [Liquid DOM](https://github.com/AndrewPrifer/liquid-dom)：グラスモーフィズムのコントロール、フィルター、メニュー、ダイアログ、スライダーに使う WebGPU 背景屈折とスプリングアニメーション（[MIT](assets/licenses/liquid-dom.txt)）。ローカル画像を使い、実験的な HTML-in-Canvas フラグは不要です。WebGPU または背景画像がない場合は CSS に切り替わります。
 - [Geist / Geist Mono](https://github.com/vercel/geist-font)、[Outfit](https://github.com/Outfitio/Outfit-Fonts)、[Plus Jakarta Sans](https://github.com/tokotype/PlusJakartaSans)、[Newsreader](https://github.com/productiontype/Newsreader)：同梱フォント（SIL Open Font License）。
 - [Chromium / Android 版 Chrome](https://chromium.googlesource.com/chromium/src/)：重なりによるグループ化、並べ替えの境界、グループパネルのアニメーションの動作参考。[調査とデスクトップ向けの調整](docs/chrome-grid-interaction-research.md)、[Chromium ライセンス](https://chromium.googlesource.com/chromium/src/+/main/LICENSE)。
-- [Leonxlnx の taste-skill](https://github.com/Leonxlnx/taste-skill)：レイアウトとスタイルの参考（MIT）。
+- [Leonxlnx の taste-skill](https://github.com/Leonxlnx/taste-skill)：レイアウトとスタイルの参考（[MIT](assets/licenses/taste-skill.txt)）。
 
 外観は [Flat UI](https://github.com/designmodo/Flat-UI)、[liquidGL](https://github.com/naughtyduk/liquidGL)、[neumorphism](https://github.com/adamgiebl/neumorphism)、[clay.css](https://github.com/codeAdrian/clay.css) から着想を得ています。TabGrid 独自の CSS で実装しており、これらのランタイムは同梱していません。
 
