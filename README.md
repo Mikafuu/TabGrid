@@ -24,18 +24,18 @@ A desktop Chrome extension that brings your tabs and tab groups into one visual 
 
 ## Install
 
-Requires **Chrome 120 or later**. The release package includes dependencies and fonts; no terminal commands or build step are needed.
+Requires **Chrome 120 or later**. 
 
-1. Download [**TabGrid.zip** from the latest release](https://github.com/Morikana39/TabGrid/releases/latest/download/TabGrid.zip), or open the [Releases page](https://github.com/Morikana39/TabGrid/releases/latest) and choose **TabGrid.zip** under **Assets**. Choose this installation package, not GitHub’s **Source code** archives or **Code → Download ZIP**.
+1. [**Click here**](https://github.com/Morikana39/TabGrid/releases/latest/download/TabGrid.zip) to download the latest version, or open the [Releases page](https://github.com/Morikana39/TabGrid/releases/latest) and choose **TabGrid.zip** under **Assets**. 
 2. Extract `TabGrid.zip` and keep the extracted folder somewhere permanent.
 3. Open `chrome://extensions` in Chrome and turn on **Developer mode**.
-4. Click **Load unpacked** and select the extracted folder containing `manifest.json`.
-5. Open Chrome’s Extensions menu (the puzzle icon) and pin **TabGrid**.
+4. Click **Load unpacked** and select the extracted TabGrid folder.
+5. Open Chrome’s Extensions menu and pin **TabGrid**.
 6. Click the extension’s icon to open TabGrid.
 
 For illustrated instructions, see [Chrome’s installation guide](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world#load-unpacked).
 
-**Updating:** download the latest `TabGrid.zip` from the release link above, extract it, and replace the files in your existing installation folder with its contents. Keep the same folder, click **Reload** for TabGrid at `chrome://extensions`, then reopen TabGrid.
+**Updating:** download the latest `TabGrid.zip` from the release link above, extract it, and replace the existing installation folder. Then click **Reload** for TabGrid at `chrome://extensions`, then reopen TabGrid.
 
 The release package contains runtime files and license notices, excluding development fixtures, screenshots, source maps, and unused dependency files. To build it from source, see [Development](#development).
 
