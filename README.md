@@ -8,6 +8,20 @@
 
 A desktop Chrome extension that brings your tabs and tab groups into one visual grid. Search, organize, and personalize your workspace—all locally, with no account required.
 
+## A closer look
+
+![TabGrid overview with tab previews and color-coded groups](images/showcase/overview.png)
+
+**Find your way through open tabs.** Browse page previews and groups in one grid, then search titles or URLs and narrow the results with filters.
+
+![TabGrid search and filters for website, group, pinned tabs, playing audio, and muted tabs](images/showcase/search-filters.png)
+
+**Make the workspace yours.** Choose Classic, Flat, or Glassmorphism, switch between light and dark, and personalize fonts, colors, and backgrounds.
+
+![TabGrid glass appearance with Classic, Flat, and Glassmorphism style choices](images/showcase/appearance.png)
+
+*AI-generated illustrative showcases based on the interface, with sample tabs and thumbnails. These are not exact screenshots. [Artwork details](docs/showcase-artwork.md).*
+
 ## Install
 
 Requires **Chrome 120 or later**. Dependencies and fonts are included; no terminal commands or build step are needed.
