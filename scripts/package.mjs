@@ -22,7 +22,7 @@ async function tree(path) { for(const item of await readdir(resolve(root,path),{
 for(const entry of ['LICENSE','manifest.json','grid.html','background.js','preview-activity.js','tileIcon.png'])await add(entry);
 for(const path of ['assets','_locales','locales'])await tree(path);
 for(const notice of ['node_modules/sortablejs/LICENSE','node_modules/@formkit/auto-animate/LICENSE','node_modules/@liquid-dom/layout/LICENSE','docs/chrome-grid-interaction-research.md'])await add(notice);
-const readme=await readFile(resolve(root,'README.md'),'utf8');
+const readme=(await readFile(resolve(root,'README.md'),'utf8')).replace(/\r\n/g,'\n');
 files.set('CREDITS.md',Buffer.from('# TabGrid — third-party credits\n\n'+readme.split('## Credits\n')[1].split('## Development')[0]));
 // Rebuild only this generated package directory. Source and user data are untouched.
 await rm(destination,{recursive:true,force:true});await mkdir(destination,{recursive:true});

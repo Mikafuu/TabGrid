@@ -1260,3 +1260,10 @@ Final checks: `npm run check`, `npm test` (204/204 passing), and `git diff --che
 - The user requested a replacement asset on the existing latest release. Keep
   v1.1.0 and its existing tag; link the replacement ZIP's exact source commit in
   the hosted release notes so it is distinguishable from the original tag archive.
+
+- Hosted run 40425058914 passed all 294 tests and syntax checks on Windows,
+  macOS and Linux. Windows packaging then exposed a CRLF-sensitive README
+  delimiter in credit extraction. Normalized line endings in the packager and
+  added an end-to-end packaging regression for both newline formats (including
+  a temporary project path containing spaces). The runtime ZIP is unchanged.
+  This checks packaging on Windows, not native Chrome rendering or permissions.
