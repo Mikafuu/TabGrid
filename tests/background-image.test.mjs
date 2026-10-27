@@ -26,7 +26,7 @@ test('background adjustment defaults, bounds and backups',()=>{
     const vars={};const root={style:{setProperty:(k,v)=>vars[k]=v}};applyBackgroundAdjustments(root,{backgroundTransparency:100,backgroundBlur:40});assert.equal(vars['--background-opacity'],'0');assert.equal(vars['--background-blur'],'40px');
 });
 test('background storage persists separately, preserves previews, and removes only the image',async()=>{
-    const f=fixture([]),url='chrome-extension://test/grid.html',p=new Personalization(f.api,url);await p.ready;
+    const f=fixture([{id:77,windowId:1,index:0}]),url='chrome-extension://test/grid.html',p=new Personalization(f.api,url);await p.ready;
     await f.api.storage.local.set({screenshot_77:'cached',unrelated:'keep'});
     await p.background('set',image);assert.deepEqual(f.local[BACKGROUND_KEY],image);assert.equal(f.local.screenshot_77,'cached');
     const restored=new Personalization(f.api,url);await restored.ready;assert.deepEqual(f.local[BACKGROUND_KEY],image);

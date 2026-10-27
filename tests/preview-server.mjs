@@ -1,7 +1,9 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
-const root=resolve(import.meta.dirname,'..');
+const sourceRoot=resolve(import.meta.dirname,'..');
+const root=process.argv[2]?resolve(process.argv[2]):sourceRoot;
+const port=Number(process.env.PORT||4173);
 const types={'.html':'text/html','.js':'text/javascript','.mjs':'text/javascript','.css':'text/css','.svg':'image/svg+xml','.png':'image/png','.ico':'image/x-icon','.woff2':'font/woff2'};
 http.createServer(async(req,res)=>{
     const request=new URL(req.url,'http://localhost');
@@ -10,7 +12,7 @@ http.createServer(async(req,res)=>{
     const path=resolve(root,relative);
     if(!path.startsWith(root+'/')) {res.writeHead(403).end();return;}
     try {
-        let data=await readFile(path);
+        let data=await readFile(relative.startsWith('tests/')?resolve(sourceRoot,relative):path);
         if(relative==='grid.html') data=data.toString().replace('<script type="module" src="grid-bootstrap.mjs"></script>','<script type="module" src="tests/preview-chrome.mjs"></script>');
         if(request.searchParams.has('dark')) {
             if(relative==='grid.html') data=data.toString().replace('href="grid.css"','href="grid.css?dark"').replace('href="theme.css"','href="theme.css?dark"');
@@ -23,4 +25,4 @@ http.createServer(async(req,res)=>{
         }
         res.writeHead(200,{'Content-Type':types[extname(path)]||'application/octet-stream','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; connect-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; object-src 'none'"});res.end(data);
     }catch{res.writeHead(404).end();}
-}).listen(4173,'127.0.0.1',()=>process.stdout.write('TabGrid UI sandbox: http://127.0.0.1:4173\n'));
+}).listen(port,'127.0.0.1',()=>process.stdout.write(`TabGrid UI sandbox: http://127.0.0.1:${port} (runtime: ${root})\n`));

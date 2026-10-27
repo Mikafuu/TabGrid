@@ -9,8 +9,9 @@ function fixture(){
     dialog.querySelector=()=>({scrollTop:0});
     dialog.cloneNode=()=>({...make(),children:[make(),make()],querySelector:()=>({scrollTop:0}),getBoundingClientRect:dialog.getBoundingClientRect});
     const motion={play:(...a)=>plays.push(a),cancel:t=>cancels.push(t),reveal:(...a)=>reveals.push(a)};
-    const controller=createGroupTransition({dialog,motion,source:()=>card,allowed:()=>enabled,dragging:()=>drag,style:()=>({borderRadius:'12px',opacity:'.5',transform:'matrix(.7,0,0,.7,0,0)',get backgroundColor(){return dialog.open?'rgba(0, 0, 0, .35)':'transparent';},get backdropFilter(){return dialog.open?'blur(3px)':'blur(0px)';}}),doc:{createElement:make,body:{append(){}}},win:{innerHeight:900,innerWidth:1200},later:f=>{done=f;return 1;},clear(){}});
-    return {controller,dialog,card,surface,plays,cancels,reveals,driver:make(),finish:()=>done(),disable:()=>enabled=false,drag:()=>drag=true};
+    const doc={createElement:make,body:{append(){}}};
+    const controller=createGroupTransition({dialog,motion,source:()=>card,allowed:()=>enabled,dragging:()=>drag,style:()=>({borderRadius:'12px',opacity:'.5',transform:'matrix(.7,0,0,.7,0,0)',get backgroundColor(){return dialog.open?'rgba(0, 0, 0, .35)':'transparent';},get backdropFilter(){return dialog.open?'blur(3px)':'blur(0px)';}}),doc,win:{innerHeight:900,innerWidth:1200},later:f=>{done=f;return 1;},clear(){}});
+    return {doc,controller,dialog,card,surface,plays,cancels,reveals,driver:make(),finish:()=>done(),disable:()=>enabled=false,drag:()=>drag=true};
 }
 test('group morph maps the dialog bounds exactly onto the source card',()=>{
     assert.equal(groupOrigin({left:30,top:40,width:200,height:150},{left:10,top:20,width:800,height:600}),'translate(-280px, -205px) scale(0.25, 0.25)');
@@ -58,4 +59,15 @@ test('drag-out closes the real modal but keeps a noninteractive reverse animatio
 });
 test('all group speed options are shorter than the previous native-reference duration',()=>{
     for(const factor of [.65,1,1.6])assert.ok(GROUP_MORPH_MS*factor<400*factor);
+});
+
+test('animated group closing releases dialog and descendant focus before aria-hidden',()=>{
+    for(const self of [true,false]){
+        const f=fixture(),child={blur(){f.doc.activeElement=null;}};
+        f.dialog.contains=el=>el===child;f.dialog.blur=()=>{f.doc.activeElement=null;};
+        f.controller.toggle(true,f.driver);f.doc.activeElement=self?f.dialog:child;
+        let hidden=false;
+        f.dialog.setAttribute=(key,value)=>{if(key==='aria-hidden'&&value==='true'){hidden=true;assert.equal(f.doc.activeElement,null);}};
+        f.controller.close();assert.equal(hidden,true);f.finish();
+    }
 });

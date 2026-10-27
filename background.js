@@ -65,8 +65,10 @@ function recordActivity(ids) {
     queue.catch(() => {}); // A storage error must not interrupt ordinary tab use.
 }
 chrome.tabs.onActivated.addListener(info => {
-    recordActivity([info.tabId]);
-    const work = () => actions.rememberOpened(`tab:${info.tabId}`);
+    // Capture this decision at event delivery, before the serialized Undo ends.
+    // Native restore activation is incidental, not an intentional card opening.
+    const work = actions.activationTask(info.tabId);
+    if (!work) return;
     queue = queue.then(work, work); queue.catch(() => {});
 });
 chrome.tabs.onUpdated.addListener((id, change, tab) => { if (change.url && tab.active) recordActivity([id]); });

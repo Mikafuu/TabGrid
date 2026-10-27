@@ -1199,3 +1199,64 @@ Final checks: `npm run check`, `npm test` (204/204 passing), and `git diff --che
 - Removed the retired sampler's unit test. All 286 remaining automated tests and syntax/module checks pass.
 - Browser preview: glass style with a synthetic striped wallpaper shows the fixed light palette (`rgb(41, 46, 51)` headings and `rgb(98, 102, 106)` muted labels). Switching to dark mode shows `rgb(232, 234, 232)` and `rgb(190, 198, 196)`. These colors remain unchanged when background transparency moves from 15% to 100% and after scrolling. No adaptive text attributes or browser console warnings/errors were observed.
 - Bumped the extension manifest from 1.0 to 1.1.0. Release notes are in `docs/releases/v1.1.0.md`. Native capture/restore behavior remains subject to the limits described above.
+
+## 2026-10-26 — History, focus, glass captions, Undo highlight, and startup
+
+- Recently closed now hides exact current grid URLs and older-installation entries
+  matching the extension URL `/grid.html` plus the title `TabGrid`. This is only a
+  presentation filter: live-tab identity and message authorization remain exact-ID
+  checks. Similarly named HTTPS pages and other extension titles remain visible.
+  Native Chrome history is not deleted or rewritten; mixed windows remain intact.
+- Undo suppresses incidental activation tracking at event delivery, before those
+  events can enter the worker action queue. Regression coverage preserves both a
+  remembered tab and group, and confirms later intentional activation still works.
+- Closing menus, animated group dialogs and filter disclosures releases contained
+  focus before `aria-hidden`. Page-menu Escape restores its invoker; context-menu
+  Escape does likewise. Animated modal closing still restores the group opener.
+- Window glass tint now blends 40% of the window color into the surface at 70%
+  opacity, rather than 10% at 28%. Fixed theme text colors are unchanged. Section
+  caption optical layers are mounted only with a custom background and removed
+  when it is removed, eliminating full-width caption strips without wallpaper.
+- The toolbar capture budget was shorter than the 600ms shared capture-quota wait.
+  It now allows up to 1500ms, cancels stale queued captures, and retains cancellation
+  and post-capture source validation. A regression test uses the real delayed wait
+  after an automatic capture. Confirmed pixels still save without blocking opening.
+  Chrome's rate limit is documented at
+  https://developer.chrome.com/docs/extensions/reference/api/tabs#property-MAX_CAPTURE_VISIBLE_TAB_CALLS_PER_SECOND.
+- Worker readiness reads only settings/migration keys and no longer waits for
+  preview-cache reconciliation. Cleanup remains serialized with preview writes.
+  A blocked-cleanup test confirms preferences become available independently.
+  These are confirmed code defects; the user's intermittent reinstall incident
+  was not reproduced end-to-end and is not claimed fully diagnosed.
+- Validation: 294 tests passed; syntax/module checks and `git diff --check` passed.
+  Rebuilt ZIP: 112 runtime/license files, 1.58 MiB unpacked, 0.91 MiB compressed.
+  ZIP integrity and extracted imports/assets/locales/portable paths passed.
+- Real Chrome on macOS rendered the extracted ZIP through the fixture server at
+  port 4174 (Chrome extension APIs simulated). Checked light/dark glass window
+  tints, removing wallpaper while running, Recently closed captions, group closing,
+  page-menu switch dismissal and context-menu Escape. Both caption backgrounds
+  were transparent without wallpaper; no focused element had an aria-hidden
+  ancestor at completion; captured warning/error logs were empty.
+  Screenshots: `output/verification-2026-10-26/window-tints.png` and
+  `output/verification-2026-10-26/package-recent-no-wallpaper.png` (local, ignored).
+- Fixed a Windows path conversion in the module-check script. Added a Windows,
+  macOS and Linux CI matrix that builds and verifies the extracted ZIP. The
+  workflow is local and has not run on Windows. No Windows VM or remote Windows
+  session was available. Native capture permissions, reinstall/worker startup,
+  GPU/input behavior on Windows remain unverified; see `docs/windows-validation.md`.
+- No version bump, GitHub push or replacement of the published v1.1.0 asset was
+  performed in this pass. `dist/TabGrid.zip` is the rebuilt local candidate.
+
+
+## 2026-10-27 — MIT licensing and replacement release package
+
+- Added the standard MIT License with copyright attributed to TabGrid contributors;
+  set package metadata to MIT and documented scope in all three README languages.
+- The ZIP now includes the root LICENSE alongside all existing dependency, font,
+  and icon notices. Verified the bundled license matches the source byte-for-byte.
+- 294 tests, syntax/module checks, ZIP integrity, and extracted-package checks pass.
+  Artifact: 113 files, 958,036 bytes compressed; SHA-256:
+  `feb5a6e6a9c8b55d0c26ae972116aeae08215ddbc8372702c7366c2b48ec9ef2`.
+- The user requested a replacement asset on the existing latest release. Keep
+  v1.1.0 and its existing tag; link the replacement ZIP's exact source commit in
+  the hosted release notes so it is distinguishable from the original tag archive.

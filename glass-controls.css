@@ -92,9 +92,9 @@ html[data-color-mode=dark][data-visual-style=glass] .card.last-opened > .card-su
 html[data-color-mode=dark][data-visual-style=glass] .sources { background: color-mix(in srgb,var(--surface) 52%,transparent); }
 html[data-color-mode=dark][data-visual-style=glass] .sources > .liquid-tab-indicator { --liquid-surface-tint: color-mix(in srgb,var(--surface) 66%,transparent); }
 
-/* Window headings retain the same translucent film as other glass controls. */
+/* Distinct window tints remain legible over busy wallpapers. */
 html[data-visual-style=glass] .window-toggle[data-glass-owner]:is(:hover,:active,[aria-expanded]) {
-    --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 90%,var(--window-color)) 28%,transparent);
+    --liquid-surface-tint: color-mix(in srgb,color-mix(in srgb,var(--surface) 60%,var(--window-color)) 70%,transparent);
 }
 
 /* Section captions share the same glass material as the surrounding panels. */

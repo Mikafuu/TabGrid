@@ -145,10 +145,10 @@ test('missing activity tracking cannot incorrectly label a cached image as uncha
     f.api.tabs.sendMessage=async()=>({});await f.cache.capture(1);
     assert.equal(await f.cache.canReuse(1,'https://example.com/1'),false);
 });
-test('the default extra opening budget is 250ms, including slow startup',async()=>{
+test('the default opening budget includes the quota wait but still bounds slow startup',async()=>{
     let expire,delay;const p={ready:new Promise(()=>{}),private:false,previews:{}};
     const opening=captureBeforeOpen(p,{id:1,url:'https://example.com/1'},{schedule:(fn,ms)=>{expire=fn;delay=ms;return 1;},cancel:()=>{}});
-    assert.equal(delay,250);expire();await opening;
+    assert.equal(delay,1500);expire();await opening;
 });
 test('confirmed pixels save after opening without waiting for the storage queue',async()=>{
     const f=cacheFixture();let release;f.cache.serial(()=>new Promise(resolve=>release=resolve));await flush();
@@ -256,4 +256,13 @@ test('navigation, denied captures, and a fresh browser session retire internal c
   if(change==='clear')await f.cache.clear();
   await f.cache.capture(1);assert.equal(f.calls.length,1,change);
  }
+});
+
+// Reproduce the toolbar click arriving immediately after an automatic capture.
+test('toolbar capture survives the real quota delay after automatic capture',async()=>{
+    const f=cacheFixture();await f.cache.capture(1);
+    f.cache.wait=ms=>new Promise(resolve=>setTimeout(()=>{f.advance(ms);resolve();},ms));
+    await captureBeforeOpen({ready:Promise.resolve(),private:false,previews:f.cache},await f.api.tabs.get(1));
+    await f.cache.queue;
+    assert.equal(f.calls.length,2);assert.equal(f.local.screenshot_1,'image-1600');
 });

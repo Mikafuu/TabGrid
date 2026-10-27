@@ -62,6 +62,10 @@ Chrome controls screenshot access. For restricted pages, open TabGrid through it
 
 Enable **Allow in Incognito** to use TabGrid in private windows. Regular and private tabs stay separate; Incognito does not save screenshots, search history, or Undo records. Chrome may still record TabGrid closures in Recently closed; restored duplicate grids remain open to avoid a close/restore loop.
 
+## License
+
+TabGrid is licensed under the [MIT License](LICENSE). Bundled third-party libraries, fonts, and icons retain their own licenses and copyright notices; see [Credits](#credits).
+
 ## Credits
 
 Thank you to the open-source projects behind TabGrid:

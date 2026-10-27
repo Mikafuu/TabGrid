@@ -132,3 +132,13 @@ test('screenshot quality persists across service recreation and cannot be change
     await assert.rejects(privateService.updatePreferences({previewQuality:20}),/regular window/);
     assert.equal((await p.preferences()).previewQuality,80);
 });
+
+test('worker preferences become ready without waiting for bulky preview cleanup',async()=>{
+    const f=previewFixture(),get=f.api.storage.local.get;let release,started;
+    const cleanupStarted=new Promise(resolve=>started=resolve);
+    f.api.storage.local.get=async keys=>{if(keys===null){started();await new Promise(resolve=>release=resolve);}return get(keys);};
+    const p=new Personalization(f.api,'chrome-extension://test/grid.html');
+    await p.ready;await cleanupStarted;
+    assert.equal((await p.preferences()).capture,true);
+    release();await p.maintenance;
+});

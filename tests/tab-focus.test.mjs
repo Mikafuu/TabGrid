@@ -70,3 +70,23 @@ test('a departing tab disappears from group previews without mutating group memb
     assert.equal(members.length,6);assert.equal(groupPreviewTiles(members)[1].tab.id,2);
     assert.ok(groupPreviewTiles([members[0]],1).every(tile=>!tile.tab));
 });
+
+test('Undo activation events cannot replace the previously opened tab or group after the action queue drains',async()=>{
+    for(const key of ['tab:1','group:7']){
+        const f=fixture(tabs,[{id:7,windowId:1,title:'Research',color:'blue'}]);
+        await f.actions.rememberOpened(key);await f.actions.close([2]);
+        const restore=f.api.sessions.restore,queued=[];
+        f.api.sessions.restore=async id=>{
+            const result=await restore(id);
+            const task=f.actions.activationTask(result.tab.id);if(task)queued.push(task);
+            return result;
+        };
+        await f.actions.undo(null,99);
+        for(const task of queued)await task();
+        assert.equal((await f.actions.lastOpenedSnapshot())[1],key);
+        assert.equal(f.actions.restoring,false);
+        const restored=f.tabs().find(t=>t.url.endsWith('/2'));
+        await f.actions.activationTask(restored.id)();
+        assert.equal((await f.actions.lastOpenedSnapshot())[1],`tab:${restored.id}`);
+    }
+});

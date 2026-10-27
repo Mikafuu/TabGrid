@@ -122,3 +122,16 @@ test('pinned grouping fails before mutation but pinned cross-window moves remain
     const moved=f.tabs().find(t=>t.id===1);
     assert.equal(moved.windowId,2);assert.equal(moved.pinned,true);assert.equal(moved.groupId,-1);
 });
+
+test('recent history hides older TabGrid installations without hiding similarly named websites or extensions',()=>{
+    const tab=(url,title,sessionId)=>({tab:{url,title,sessionId}});
+    const old='chrome-extension://old-install/grid.html?view=recent';
+    const sessions=[tab(old,'TabGrid','old'),tab('https://example.com/grid.html','TabGrid','web'),
+        tab('chrome-extension://other/grid.html','Other extension','other'),
+        {window:{sessionId:'only-grid',tabs:[{url:old,title:'TabGrid'}]}},
+        {window:{sessionId:'mixed',tabs:[{url:old,title:'TabGrid'},{url:'https://example.com',title:'Example'}]}}];
+    const result=recentItems(sessions,grid);
+    assert.deepEqual(result.map(item=>item.sessionId),['web','other','mixed']);
+    assert.equal(result[2].title,'1 tabs — closed window');
+    assert.equal(sessions.length,5);
+});

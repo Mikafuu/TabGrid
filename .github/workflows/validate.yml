@@ -1,0 +1,27 @@
+name: Source and release-package checks
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  portable-checks:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run check
+      - run: npm run package
+      - run: python -m zipfile -t dist/TabGrid.zip
+      - run: python -m zipfile -e dist/TabGrid.zip dist/extracted
+      - run: node scripts/verify-package.mjs dist/extracted
